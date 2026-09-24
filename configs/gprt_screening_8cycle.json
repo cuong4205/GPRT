@@ -1,0 +1,17 @@
+{
+  "description": "Screening toi thieu: mot luot phu du 32 instance train; dung validation de quyet dinh co chay 16/32 chu ky",
+  "cycles": 8,
+  "population_size": 64,
+  "transformer_samples": 32,
+  "standalone_rl_samples_per_cycle": 352,
+  "gp_generations": 3,
+  "batch_size_instances": 4,
+  "validation_interval": 4,
+  "screening_train_size": 8,
+  "elite_screening_candidates": 8,
+  "behavior_probe_size": 1,
+  "advantage_mode": "batch_standardize",
+  "use_lookahead_features": true,
+  "require_full_train_coverage": true,
+  "seeds": [20260914, 20260915, 20260916, 20260917, 20260918]
+}

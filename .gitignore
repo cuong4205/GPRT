@@ -1,0 +1,6 @@
+docs/
+.artifact-tool/
+.agents/
+__pycache__/
+outputs/
+tmp/

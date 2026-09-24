@@ -1,0 +1,13 @@
+{
+  "description": "LEGACY: protocol da chay ngay 2026-09-14; chi phuc vu doi chieu ket qua cu, khong du phu 32 train instance va khong tuong thich checkpoint voi feature-v2",
+  "cycles": 4,
+  "population_size": 64,
+  "transformer_samples": 32,
+  "standalone_rl_samples_per_cycle": 352,
+  "gp_generations": 3,
+  "batch_size_instances": 4,
+  "validation_interval": 4,
+  "require_full_train_coverage": false,
+  "fitness_requests_per_learned_method_seed": 1424,
+  "seeds": [20260914, 20260915, 20260916, 20260917, 20260918]
+}

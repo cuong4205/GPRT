@@ -1,0 +1,17 @@
+{
+  "description": "Screening archive seeding: 4 old screened elites replace 4 random GP seeds; train/validation only",
+  "cycles": 8,
+  "population_size": 64,
+  "transformer_samples": 32,
+  "archive_seed_count": 4,
+  "gp_generations": 3,
+  "batch_size_instances": 4,
+  "validation_interval": 4,
+  "screening_train_size": 8,
+  "elite_screening_candidates": 8,
+  "behavior_probe_size": 1,
+  "advantage_mode": "batch_standardize",
+  "use_lookahead_features": true,
+  "require_full_train_coverage": true,
+  "seeds": [20260914, 20260915]
+}
