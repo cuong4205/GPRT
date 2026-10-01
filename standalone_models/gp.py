@@ -5,8 +5,8 @@ import random
 from dataclasses import dataclass
 from typing import TypeAlias
 
-from .data import VRPTWInstance
-from .solver import CandidateContext, solve
+from vrptw_baselines.data import VRPTWInstance
+from vrptw_baselines.solver import CandidateContext, solve
 
 
 Tree: TypeAlias = str | float | tuple
