@@ -46,6 +46,9 @@ class Solution:
 
 
 PriorityFunction = Callable[[VRPTWInstance, CandidateContext], float]
+CandidateSelector = Callable[
+    [VRPTWInstance, list[CandidateContext]], CandidateContext
+]
 
 
 def _candidate_contexts(
@@ -92,18 +95,25 @@ def solve(
     *,
     seed: int = 0,
     priority_function: PriorityFunction | None = None,
+    candidate_selector: CandidateSelector | None = None,
 ) -> Solution:
     """Construct a solution using one shared feasibility engine.
 
-    Supported methods are fifo, random, greedy, edd, and gp. Lower GP priority
-    values are selected first. Ties are resolved by due date then customer ID.
+    Supported methods are fifo, random, greedy, edd, gp, transformer, and rl.
+    GP and Transformer choose the lowest priority score. RL supplies a selector
+    that samples or ranks the currently feasible candidates. Ties in priority
+    methods are resolved by customer ID.
     """
 
     normalized_method = method.lower().replace("-", "_")
-    if normalized_method not in {"fifo", "random", "greedy", "edd", "gp"}:
+    if normalized_method not in {"fifo", "random", "greedy", "edd", "gp", "transformer", "rl"}:
         raise ValueError(f"Unknown method: {method}")
-    if normalized_method == "gp" and priority_function is None:
-        raise ValueError("GP requires a priority_function")
+    if normalized_method in {"gp", "transformer"} and priority_function is None:
+        raise ValueError(f"{normalized_method.upper()} requires a priority_function")
+    if normalized_method == "rl" and candidate_selector is None:
+        raise ValueError("RL requires a candidate_selector")
+    if normalized_method != "rl" and candidate_selector is not None:
+        raise ValueError("candidate_selector is only valid for the RL method")
 
     rng = random.Random(seed)
     unserved = set(range(1, len(instance.customers)))
@@ -147,7 +157,7 @@ def solve(
                         context.customer_id,
                     ),
                 )
-            else:
+            elif normalized_method in {"gp", "transformer"}:
                 assert priority_function is not None
                 chosen = min(
                     contexts,
@@ -156,6 +166,11 @@ def solve(
                         context.customer_id,
                     ),
                 )
+            else:
+                assert candidate_selector is not None
+                chosen = candidate_selector(instance, contexts)
+                if chosen not in contexts:
+                    raise ValueError("candidate_selector must return a feasible candidate")
 
             customer = instance.customers[chosen.customer_id]
             route.append(chosen.customer_id)

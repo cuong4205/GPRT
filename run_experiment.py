@@ -12,11 +12,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from vrptw_baselines.data import VRPTWInstance, discover_instances
-from vrptw_baselines.gp import GPConfig, evolve, make_priority, tree_size
+from standalone_models.gp import GPConfig, evolve, make_priority, tree_size
 from vrptw_baselines.solver import Solution, solve
 
 
-METHODS = ("FIFO", "Random", "Greedy", "EDD", "GP")
+METHODS = ("FIFO", "Random", "Greedy", "EDD")
 
 
 def family(name: str) -> str:

@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from vrptw_baselines.data import Customer, VRPTWInstance, parse_instance
-from vrptw_baselines.gp import evaluate_tree, tree_depth, tree_size, tree_to_string
+from standalone_models.gp import evaluate_tree, tree_depth, tree_size, tree_to_string
 from vrptw_baselines.solver import solve, validate_solution
 
 
