@@ -244,8 +244,7 @@ class GPRTTrainer:
         seed: int,
         output_dir: Path,
         split_manifest: dict[str, str],
-        resume: Path | None = None,
-        stop_after_cycle: int | None = None,
+        resume: Path | None = None
     ) -> TrainingResult:
         if not train_instances or not validation_instances:
             raise ValueError("Non-empty train and validation sets are required")
@@ -281,9 +280,8 @@ class GPRTTrainer:
         behavior_probe = screening_instances[: self.config.behavior_probe_size]
         last_checkpoint = output_dir / "last.pt"
         best_checkpoint = output_dir / "best.pt"
-        limit = self.config.cycles if stop_after_cycle is None else min(stop_after_cycle, self.config.cycles)
 
-        for cycle in range(self.completed_cycles + 1, limit + 1):
+        for cycle in range(self.completed_cycles + 1, self.config.cycles + 1):
             wall_started = time.perf_counter()
             stats_before = EvaluationStats(**asdict(self.evaluator.stats))
             batch = batches[(cycle - 1) % len(batches)]
@@ -413,6 +411,8 @@ class GPRTTrainer:
             policy_gradient_norm, elite_gradient_norm, gradient_cosine = _branch_gradient_metrics(
                 policy_loss, weighted_elite_loss, parameters
             )
+            # Optimizer for reinforcement learning
+
             self.optimizer.zero_grad(set_to_none=True)
             loss.backward()
             gradient_norm = float(torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.gradient_clip))

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from math import hypot
 from pathlib import Path
 
 from vrptw_baselines.data import Customer, VRPTWInstance, parse_instance
@@ -15,6 +16,15 @@ class VRPTWBaselineTests(unittest.TestCase):
         self.assertEqual(instance.max_vehicles, 25)
         self.assertEqual(instance.capacity, 200)
         self.assertEqual(instance.depot.customer_id, 0)
+
+    def test_distance_matrix_matches_unrounded_euclidean_distance(self) -> None:
+        instance = parse_instance(Path("data/data/Solomon/c101.txt"))
+        for a in instance.customers:
+            for b in instance.customers:
+                self.assertEqual(
+                    instance.distance(a.customer_id, b.customer_id),
+                    hypot(a.x - b.x, a.y - b.y),
+                )
 
     def tiny_instance(self) -> VRPTWInstance:
         return VRPTWInstance(

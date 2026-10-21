@@ -114,6 +114,11 @@ def solve(
         raise ValueError("RL requires a candidate_selector")
     if normalized_method != "rl" and candidate_selector is not None:
         raise ValueError("candidate_selector is only valid for the RL method")
+    prepare_contexts = (
+        getattr(priority_function, "prepare_contexts", None)
+        if normalized_method in {"gp", "transformer"}
+        else None
+    )
 
     rng = random.Random(seed)
     unserved = set(range(1, len(instance.customers)))
@@ -136,6 +141,8 @@ def solve(
             )
             if not contexts:
                 break
+            if prepare_contexts is not None:
+                prepare_contexts(instance, contexts)
 
             if normalized_method == "random":
                 chosen = rng.choice(contexts)

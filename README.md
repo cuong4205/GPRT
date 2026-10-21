@@ -9,6 +9,7 @@ Protocol feature-v2 sàng lọc archive trên tập train chung, bắt buộc ph
 chung. Kết quả `reduced_main` là pilot 4 chu kỳ lịch sử, không phải kết quả sau sửa.
 
 Xem [hướng dẫn chạy](docs/RUN_GPRT_VRPTW.md),
+[giải thích các mô hình và biến thể GP/Transformer/RL/GPRT](docs/GPRT_MODELS_AND_VARIANTS_VI.md),
 [tài liệu kỹ thuật diễn giải toàn bộ project](docs/GPRT_PROJECT_TECHNICAL_DOCUMENTATION_VI.md),
 [báo cáo thực thi cải thiện](docs/GPRT_VRPTW_IMPROVEMENT_IMPLEMENTATION_VI.md) và
 [báo cáo pilot tiếng Việt](docs/GPRT_VRPTW_REPORT_VI.md). Kết quả legacy nằm tại

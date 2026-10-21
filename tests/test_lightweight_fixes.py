@@ -6,14 +6,68 @@ import unittest
 from pathlib import Path
 
 from test_gprt_vrptw import tiny_config, tiny_instance
-from gprt_vrptw.evaluator import compile_tree, make_priority, normalized_feature_vector
+from gprt_vrptw.evaluator import (
+    _next_feasible_fractions,
+    _vectorized_next_feasible_fractions,
+    _urgency_ranks,
+    compile_tree,
+    make_priority,
+    normalized_feature_vector,
+    normalized_features,
+)
 from gprt_vrptw.gp import crossover, deduplicate_fill, mutate, valid
 from gprt_vrptw.grammar import FEATURES, Grammar, GrammarState, safe_evaluate, simplify_tree, tree_to_prefix
 from gprt_vrptw.trainer import GPRTTrainer
-from vrptw_baselines.solver import CandidateContext, solve
+from vrptw_baselines.data import parse_instance
+from vrptw_baselines.solver import CandidateContext, _candidate_contexts, solve
 
 
 class LazyFeatureTests(unittest.TestCase):
+    def test_batched_lookahead_features_match_dense_reference(self):
+        instance = tiny_instance()
+        contexts = _candidate_contexts(
+            instance,
+            set(range(1, len(instance.customers))),
+            0,
+            max(0.0, instance.depot.ready_time),
+            instance.capacity,
+            1,
+        )
+        fractions = _next_feasible_fractions(instance, contexts)
+        ranks = _urgency_ranks(instance, contexts)
+        tree = ("add", "next_feasible_fraction", "urgency_rank")
+        priority = make_priority(tree)
+        priority.prepare_contexts(instance, contexts)
+        compiled = compile_tree(tree)
+        for context in contexts:
+            dense = normalized_features(instance, context)
+            self.assertEqual(fractions[id(context)], dense["next_feasible_fraction"])
+            self.assertEqual(ranks[id(context)], dense["urgency_rank"])
+            self.assertEqual(
+                priority(instance, context),
+                compiled(normalized_feature_vector(instance, context)),
+            )
+
+    def test_vectorized_lookahead_matches_dense_reference(self):
+        instance = parse_instance(Path("data/data/Solomon/c101.txt"))
+        contexts = _candidate_contexts(
+            instance,
+            set(range(1, len(instance.customers))),
+            0,
+            max(0.0, instance.depot.ready_time),
+            instance.capacity,
+            1,
+        )
+        self.assertGreaterEqual(len(contexts) * len(contexts[0].unserved_ids), 2048)
+        fractions = _vectorized_next_feasible_fractions(
+            instance, contexts, instance._distance_matrix_cache
+        )
+        for context in contexts:
+            self.assertEqual(
+                fractions[id(context)],
+                normalized_features(instance, context)["next_feasible_fraction"],
+            )
+
     def test_all_terminals_and_expressions_match_dense_reference(self):
         instance = tiny_instance()
         rng = random.Random(281)

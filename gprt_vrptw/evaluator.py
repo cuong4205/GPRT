@@ -4,8 +4,11 @@ import hashlib
 import json
 import math
 import time
+from bisect import bisect_right
 from dataclasses import dataclass
 from typing import Any, NamedTuple
+
+import numpy as np
 
 from vrptw_baselines.data import VRPTWInstance
 from vrptw_baselines.solver import CandidateContext, Solution, solve
@@ -119,6 +122,179 @@ def normalized_feature_vector(
     return tuple(values[name] for name in FEATURES)
 
 
+def _next_feasible_fractions(
+    instance: VRPTWInstance,
+    contexts: list[CandidateContext],
+) -> dict[int, float]:
+    """Compute look-ahead values for one routing state with shared customer data."""
+    if not contexts:
+        return {}
+    unserved_ids = contexts[0].unserved_ids
+    distance_matrix = instance._distance_matrix_cache
+    candidate_cells = len(contexts) * len(unserved_ids)
+    if distance_matrix is not None and candidate_cells >= 2048:
+        return _vectorized_next_feasible_fractions(
+            instance, contexts, distance_matrix
+        )
+
+    others = tuple(
+        (
+            other_id,
+            instance.customers[other_id].demand,
+            instance.customers[other_id].ready_time,
+            instance.customers[other_id].due_date,
+            instance.customers[other_id].service_time,
+            instance.distance(other_id, 0),
+        )
+        for other_id in unserved_ids
+    )
+    depot_due_date = instance.depot.due_date
+    fractions: dict[int, float] = {}
+    for context in contexts:
+        candidate = instance.customers[context.customer_id]
+        departure = context.service_start + candidate.service_time
+        capacity_after = context.remaining_capacity - candidate.demand
+        next_feasible = 0
+        distance_row = (
+            distance_matrix[context.customer_id]
+            if distance_matrix is not None else None
+        )
+        for (
+            other_id,
+            other_demand,
+            other_ready_time,
+            other_due_date,
+            other_service_time,
+            distance_to_depot,
+        ) in others:
+            if other_id == context.customer_id:
+                continue
+            if other_demand > capacity_after + 1e-9:
+                continue
+            distance = (
+                distance_row[other_id]
+                if distance_row is not None
+                else instance.distance(context.customer_id, other_id)
+            )
+            arrival = departure + distance
+            service_start = other_ready_time if other_ready_time > arrival else arrival
+            if service_start > other_due_date + 1e-9:
+                continue
+            if service_start + other_service_time + distance_to_depot > depot_due_date + 1e-9:
+                continue
+            next_feasible += 1
+        fractions[id(context)] = next_feasible / max(1, context.unserved_count - 1)
+    return fractions
+
+
+def _vectorized_next_feasible_fractions(
+    instance: VRPTWInstance,
+    contexts: list[CandidateContext],
+    distance_matrix: tuple[tuple[float, ...], ...],
+) -> dict[int, float]:
+    """Evaluate large look-ahead states in bulk without changing float operations."""
+    unserved_ids = contexts[0].unserved_ids
+    customers = instance.customers
+    other_ids = np.asarray(unserved_ids, dtype=np.intp)
+    other_demands = np.fromiter(
+        (customers[customer_id].demand for customer_id in unserved_ids),
+        dtype=np.float64,
+        count=len(unserved_ids),
+    )
+    other_ready_times = np.fromiter(
+        (customers[customer_id].ready_time for customer_id in unserved_ids),
+        dtype=np.float64,
+        count=len(unserved_ids),
+    )
+    other_due_dates = np.fromiter(
+        (customers[customer_id].due_date for customer_id in unserved_ids),
+        dtype=np.float64,
+        count=len(unserved_ids),
+    )
+    other_service_times = np.fromiter(
+        (customers[customer_id].service_time for customer_id in unserved_ids),
+        dtype=np.float64,
+        count=len(unserved_ids),
+    )
+    other_depot_distances = np.fromiter(
+        (instance.distance(customer_id, 0) for customer_id in unserved_ids),
+        dtype=np.float64,
+        count=len(unserved_ids),
+    )
+    candidate_ids = np.fromiter(
+        (context.customer_id for context in contexts),
+        dtype=np.intp,
+        count=len(contexts),
+    )
+    departures = np.fromiter(
+        (
+            context.service_start + customers[context.customer_id].service_time
+            for context in contexts
+        ),
+        dtype=np.float64,
+        count=len(contexts),
+    )
+    capacities_after = np.fromiter(
+        (
+            context.remaining_capacity - customers[context.customer_id].demand
+            for context in contexts
+        ),
+        dtype=np.float64,
+        count=len(contexts),
+    )
+    matrix = np.asarray(distance_matrix, dtype=np.float64)
+    arrivals = departures[:, None] + matrix[candidate_ids[:, None], other_ids]
+    service_starts = np.where(
+        other_ready_times[None, :] > arrivals,
+        other_ready_times[None, :],
+        arrivals,
+    )
+
+    # Use negated `>` checks to match the scalar loop even for NaN values.
+    feasible = other_ids[None, :] != candidate_ids[:, None]
+    feasible &= ~(
+        other_demands[None, :] > capacities_after[:, None] + 1e-9
+    )
+    feasible &= ~(
+        service_starts > other_due_dates[None, :] + 1e-9
+    )
+    feasible &= ~(
+        service_starts
+        + other_service_times[None, :]
+        + other_depot_distances[None, :]
+        > instance.depot.due_date + 1e-9
+    )
+    next_feasible_counts = np.count_nonzero(feasible, axis=1)
+    return {
+        id(context): int(next_feasible)
+        / max(1, context.unserved_count - 1)
+        for context, next_feasible in zip(contexts, next_feasible_counts)
+    }
+
+
+def _urgency_ranks(
+    instance: VRPTWInstance,
+    contexts: list[CandidateContext],
+) -> dict[int, float]:
+    """Rank candidate due dates with one shared sorted view of the state."""
+    if not contexts:
+        return {}
+    due_dates = sorted(
+        due_date
+        for due_date in (
+            instance.customers[other_id].due_date
+            for other_id in contexts[0].unserved_ids
+        )
+        if not math.isnan(due_date)
+    )
+    ranks: dict[int, float] = {}
+    for context in contexts:
+        due_date = instance.customers[context.customer_id].due_date
+        count = 0 if math.isnan(due_date) else bisect_right(due_dates, due_date)
+        ranks[id(context)] = count / max(1, context.unserved_count)
+    return ranks
+
+
 def _bounded(value: float, limit: float = 1e6) -> float:
     if not math.isfinite(value):
         return math.copysign(limit, value if not math.isnan(value) else 1.0)
@@ -175,13 +351,29 @@ class _LazyFeatureVector:
     are local to one candidate and are never reused across routing states.
     """
 
-    __slots__ = ("instance", "context", "lookahead", "values")
+    __slots__ = (
+        "instance",
+        "context",
+        "lookahead",
+        "values",
+        "next_feasible_fraction",
+        "urgency_rank",
+    )
 
-    def __init__(self, instance: VRPTWInstance, context: CandidateContext, lookahead: bool):
+    def __init__(
+        self,
+        instance: VRPTWInstance,
+        context: CandidateContext,
+        lookahead: bool,
+        next_feasible_fraction: float | None = None,
+        urgency_rank: float | None = None,
+    ):
         self.instance = instance
         self.context = context
         self.lookahead = lookahead
         self.values: dict[int, float] = {}
+        self.next_feasible_fraction = next_feasible_fraction
+        self.urgency_rank = urgency_rank
 
     def __getitem__(self, index: int) -> float:
         if index not in self.values:
@@ -216,11 +408,15 @@ class _LazyFeatureVector:
         if name == "remaining_vehicles":
             return max(0, instance.max_vehicles - context.routes_used) / max(1, instance.max_vehicles)
         if name == "urgency_rank":
+            if self.urgency_rank is not None:
+                return self.urgency_rank
             return sum(
                 instance.customers[other_id].due_date <= customer.due_date
                 for other_id in context.unserved_ids
             ) / max(1, context.unserved_count)
         if name == "next_feasible_fraction":
+            if self.next_feasible_fraction is not None:
+                return self.next_feasible_fraction
             departure = context.service_start + customer.service_time
             capacity_after = context.remaining_capacity - customer.demand
             next_feasible = 0
@@ -243,13 +439,69 @@ class _LazyFeatureVector:
 
 def make_priority(tree: Tree, *, use_lookahead_features: bool = True):
     compiled = compile_tree(tree)
+    uses_next_feasible = use_lookahead_features and _tree_uses_feature(
+        tree, "next_feasible_fraction"
+    )
+    uses_urgency_rank = use_lookahead_features and _tree_uses_feature(tree, "urgency_rank")
+    uses_prepared_features = uses_next_feasible or uses_urgency_rank
+    prepared_features: dict[
+        int, tuple[CandidateContext, float | None, float | None]
+    ] = {}
 
     def priority(instance: VRPTWInstance, context: CandidateContext) -> float:
+        prepared = prepared_features.get(id(context)) if uses_prepared_features else None
+        if prepared is not None and prepared[0] is not context:
+            prepared = None
+        next_feasible_fraction = (
+            prepared[1] if uses_next_feasible and prepared is not None else None
+        )
+        urgency_rank = (
+            prepared[2] if uses_urgency_rank and prepared is not None else None
+        )
         return compiled(
-            _LazyFeatureVector(instance, context, use_lookahead_features)
+            _LazyFeatureVector(
+                instance,
+                context,
+                use_lookahead_features,
+                next_feasible_fraction,
+                urgency_rank,
+            )
         )
 
+    if uses_prepared_features:
+        def prepare_contexts(
+            instance: VRPTWInstance,
+            contexts: list[CandidateContext],
+        ) -> None:
+            prepared_features.clear()
+            fractions = (
+                _next_feasible_fractions(instance, contexts)
+                if uses_next_feasible else {}
+            )
+            ranks = _urgency_ranks(instance, contexts) if uses_urgency_rank else {}
+            prepared_features.update(
+                (
+                    id(context),
+                    (
+                        context,
+                        fractions.get(id(context)),
+                        ranks.get(id(context)),
+                    ),
+                )
+                for context in contexts
+            )
+
+        priority.prepare_contexts = prepare_contexts
+
     return priority
+
+
+def _tree_uses_feature(tree: Tree, name: str) -> bool:
+    if isinstance(tree, str):
+        return tree == name
+    if isinstance(tree, (int, float)):
+        return False
+    return any(_tree_uses_feature(child, name) for child in tree[1:])
 
 
 class FitnessEvaluator:
