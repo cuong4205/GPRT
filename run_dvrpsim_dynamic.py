@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import platform
 import statistics
 import subprocess
 from collections import defaultdict
@@ -20,12 +21,13 @@ from dvrpsim_dynamic.simulator import (
 )
 from dvrpsim_dynamic.scenario import Scenario, ScenarioConfig, generate_scenario
 from gprt_vrptw.splits import family, split_solomon
+from gprt_vrptw.grammar import tree_to_prefix
 from vrptw_baselines.data import discover_instances
 
 
 ROOT = Path(__file__).resolve().parent
 CONFIG_PATH = ROOT / "configs" / "dvrpsim_dynamic.json"
-OUTPUT_ROOT = ROOT / "outputs" / "dvrpsim_dynamic_30pct_cancel5"
+OUTPUT_ROOT = ROOT / "outputs" / "dvrpsim_dynamic_70pct_cancel5"
 METRICS = (
     "served_rate",
     "on_time_rate",
@@ -44,6 +46,12 @@ METRICS = (
     "travel_time",
     "wall_clock_seconds",
     "callback_latency_p95_ms",
+    "callback_latency_mean_ms",
+    "callback_count",
+    "trip_count",
+    "dynamic_selected",
+    "dynamic_released_after_zero",
+    "infeasible_orders",
 )
 
 
@@ -170,6 +178,7 @@ def _policy_manifest(policy: PolicySpec) -> dict[str, Any]:
         "source_file": policy.source_file,
         "source_sha256": policy.source_sha256,
         "checkpoint_sha256": policy.checkpoint_sha256,
+        "expression_token_count": len(tree_to_prefix(policy.tree)) if policy.tree is not None else None,
         "selection": "final_heuristic.txt saved by the training run after validation selection",
     }
 
@@ -195,7 +204,9 @@ def _run_phase(config: dict[str, Any], phase: str, output_dir: Path, *,
     manifest_path = output_dir / "episode_manifest.jsonl"
     events_path = output_dir / "events.jsonl"
     results_path = output_dir / "episode_results.jsonl"
-    for path in (episodes_path, manifest_path, events_path, results_path):
+    for path in (episodes_path, manifest_path, events_path, results_path,
+                 *(output_dir / name for name in ("gate_report.json", "summary_by_policy.csv",
+                    "paired_comparisons.csv", "validation_report.json"))):
         if path.exists():
             path.unlink()
 
@@ -268,6 +279,11 @@ def _run_phase(config: dict[str, Any], phase: str, output_dir: Path, *,
                                        ROOT / "gprt_vrptw/evaluator.py", ROOT / "gprt_vrptw/grammar.py",
                                        ROOT / "vrptw_baselines/data.py", ROOT / "vrptw_baselines/solver.py"]},
         "simpy_version": version("simpy"),
+        "python_version": platform.python_version(),
+        "platform": platform.platform(),
+        "numpy_version": version("numpy"),
+        "torch_version": version("torch"),
+        "dynamic_route_backend": "Python snapshot construction + shared scalar heuristic; no offline GP/RL search",
         "distance": config["distance"],
         "dispatch_policy": config["dispatch_policy"],
         "scenario_rules": config["scenario"],

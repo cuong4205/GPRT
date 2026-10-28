@@ -15,7 +15,7 @@ from vrptw_baselines.data import VRPTWInstance, validate_instance
 
 @dataclass(frozen=True, slots=True)
 class ScenarioConfig:
-    dynamic_ratio: float = 0.30
+    dynamic_ratio: float = 0.70
     dynamic_lead_min: int = 10
     dynamic_lead_max: int = 15
     cancel_candidate_ratio: float = 0.05

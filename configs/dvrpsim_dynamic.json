@@ -3,7 +3,7 @@
   "distance": "Euclidean, unrounded; travel time equals travel distance",
   "dispatch_policy": "Dispatch at release, successful cancellation, and vehicle return to depot; routes are committed until return; reusable fixed fleet",
   "scenario": {
-    "dynamic_ratio": 0.30,
+    "dynamic_ratio": 0.70,
     "dynamic_lead_min": 10,
     "dynamic_lead_max": 15,
     "cancel_candidate_ratio": 0.05,

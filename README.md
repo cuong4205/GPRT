@@ -55,17 +55,19 @@ python validate_gprt_results.py --results-dir outputs/gprt_vrptw/main
 ## Mô phỏng DVRPTW động
 
 Đã tích hợp DVRPSim với biểu thức heuristic GP/GPRT đã chọn theo validation. Kịch bản
-mặc định chọn 30% đơn công khai động (`max(0, ready_time - lead)`, lead 10–15) và 5%
+mặc định chọn 70% đơn công khai động (`max(0, ready_time - lead)`, lead 10–15) và 5%
 ứng viên yêu cầu hủy; chỉ hủy đơn chưa được gán xe. GP, GPRT và EDD dùng chung kịch bản,
 bộ lọc khả thi và cơ chế dispatch. Có thể thêm greedy qua `--methods`.
 
 ```powershell
 python run_dvrpsim_dynamic.py --phase smoke
 python run_dvrpsim_dynamic.py --phase all
-python validate_dvrpsim_results.py --results-dir outputs/dvrpsim_dynamic_30pct_cancel5/final
+python validate_dvrpsim_results.py --results-dir outputs/dvrpsim_dynamic_70pct_cancel5/final
 ```
 
 Hướng dẫn cấu hình, replay và quy ước mô phỏng: [DVRPSIM_DYNAMIC.md](DVRPSIM_DYNAMIC.md).
+Tài liệu này cũng trình bày đầy đủ sự kiện, thời điểm replan, ràng buộc, cách tích hợp
+heuristic và báo cáo performance GP/GPRT ở kịch bản 70% động.
 Môi trường `.venv` đã được chuẩn bị cho lần tích hợp này; có thể gọi trực tiếp
 `.venv/Scripts/python.exe` thay cho `python`.
 

@@ -123,7 +123,7 @@ def test_plan_scenario_has_exact_groups_and_preserves_benchmark(tmp_path):
     instance = parse_instance("data/data/Solomon/c101.txt")
     first = generate_scenario(instance, 42)
     assert first == generate_scenario(instance, 42)
-    assert sum(o.dynamic_selected for o in first.orders) == 30
+    assert sum(o.dynamic_selected for o in first.orders) == 70
     assert len(first.cancellation_requests) == 5
     for order in first.orders:
         customer = instance.customers[order.customer_id]
@@ -142,6 +142,18 @@ def test_plan_scenario_has_exact_groups_and_preserves_benchmark(tmp_path):
     changed = generate_scenario(instance, 42, rules=ScenarioConfig(cancel_candidate_ratio=0.20))
     assert changed.release_times == first.release_times  # independent random streams
     assert parse_instance(instance.path).customers == instance.customers
+
+
+def test_default_config_uses_seventy_percent_and_legacy_ratio_is_explicit():
+    config = json.loads(Path("configs/dvrpsim_dynamic.json").read_text(encoding="utf-8"))
+    assert ScenarioConfig().dynamic_ratio == config["scenario"]["dynamic_ratio"] == .70
+    instance = parse_instance("data/data/Solomon/c101.txt")
+    current = generate_scenario(instance, 42)
+    legacy = generate_scenario(instance, 42, rules=ScenarioConfig(dynamic_ratio=.30))
+    assert sum(o.dynamic_selected for o in current.orders) == 70
+    assert sum(o.dynamic_selected for o in legacy.orders) == 30
+    assert sum(o.release_time > 0 for o in current.orders) <= 70
+    assert [cid for cid, _ in current.cancellation_requests] == [cid for cid, _ in legacy.cancellation_requests]
 
 
 def test_small_counts_use_half_up_and_selected_dynamic_can_release_at_zero():
