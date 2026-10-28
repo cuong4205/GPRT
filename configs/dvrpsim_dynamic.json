@@ -1,0 +1,22 @@
+{
+  "dvrpsim_version": "1.0.0",
+  "distance": "Euclidean, unrounded; travel time equals travel distance",
+  "dispatch_policy": "Dispatch at release, successful cancellation, and vehicle return to depot; routes are committed until return; reusable fixed fleet",
+  "scenario": {
+    "dynamic_ratio": 0.30,
+    "dynamic_lead_min": 10,
+    "dynamic_lead_max": 15,
+    "cancel_candidate_ratio": 0.05,
+    "cancel_delay_min": 1,
+    "cancel_delay_max": 15
+  },
+  "pilot_validation_instances": ["c102", "c206", "r104", "rc203"],
+  "pilot_scenario_seeds": [20261025, 20261026],
+  "test_scenario_seeds": [20261025, 20261026, 20261027],
+  "methods": ["gprt", "gp", "edd"],
+  "training_seeds": [20260914, 20260915, 20260916, 20260917, 20260918],
+  "split_manifest": "outputs/gprt_vrptw/reduced_main/split_manifest.json",
+  "policy_root": "outputs/gprt_vrptw/reduced_main",
+  "solomon_root": "data/data/Solomon",
+  "due_date_semantics": "latest service start; enforced by the candidate filter and independent episode checker"
+}

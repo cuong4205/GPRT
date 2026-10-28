@@ -3,9 +3,11 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import time
 from bisect import bisect_right
 from dataclasses import dataclass
+from importlib.metadata import version
 from typing import Any, NamedTuple
 
 import numpy as np
@@ -56,36 +58,33 @@ def distance_scale(instance: VRPTWInstance) -> float:
 def normalized_features(
     instance: VRPTWInstance,
     context: CandidateContext,
-    *,
-    use_lookahead_features: bool = True,
 ) -> dict[str, float]:
     customer = instance.customers[context.customer_id]
     horizon = max(1.0, instance.depot.due_date)
     capacity = max(1.0, instance.capacity)
     scale = distance_scale(instance)
     route_load = instance.capacity - context.remaining_capacity
-    next_feasible = 0
-    candidate = instance.customers[context.customer_id]
+    candidate = customer
     departure = context.service_start + candidate.service_time
     capacity_after = context.remaining_capacity - candidate.demand
-    if use_lookahead_features:
-        for other_id in context.unserved_ids:
-            if other_id == context.customer_id:
-                continue
-            other = instance.customers[other_id]
-            if other.demand > capacity_after + 1e-9:
-                continue
-            arrival = departure + instance.distance(context.customer_id, other_id)
-            service_start = max(arrival, other.ready_time)
-            if service_start > other.due_date + 1e-9:
-                continue
-            if service_start + other.service_time + instance.distance(other_id, 0) > instance.depot.due_date + 1e-9:
-                continue
-            next_feasible += 1
-    urgency_rank = (sum(
+    next_feasible = 0
+    for other_id in context.unserved_ids:
+        if other_id == context.customer_id:
+            continue
+        other = instance.customers[other_id]
+        if other.demand > capacity_after + 1e-9:
+            continue
+        arrival = departure + instance.distance(context.customer_id, other_id)
+        service_start = max(arrival, other.ready_time)
+        if service_start > other.due_date + 1e-9:
+            continue
+        if service_start + other.service_time + instance.distance(other_id, 0) > instance.depot.due_date + 1e-9:
+            continue
+        next_feasible += 1
+    urgency_rank = sum(
         instance.customers[other_id].due_date <= customer.due_date
         for other_id in context.unserved_ids
-    ) / max(1, context.unserved_count)) if use_lookahead_features else 0.0
+    ) / max(1, context.unserved_count)
     return {
         "d_current": instance.distance(context.current_id, context.customer_id) / scale,
         "d_depot": instance.distance(context.customer_id, 0) / scale,
@@ -100,28 +99,18 @@ def normalized_features(
         "route_load": route_load / capacity,
         "remaining_fraction": context.unserved_count / max(1, instance.customer_count),
         "current_time": context.current_time / horizon,
-        "remaining_vehicles": (
-            max(0, instance.max_vehicles - context.routes_used) / max(1, instance.max_vehicles)
-            if use_lookahead_features else 0.0
-        ),
-        "next_feasible_fraction": (
-            next_feasible / max(1, context.unserved_count - 1)
-            if use_lookahead_features else 0.0
-        ),
-        "urgency_rank": urgency_rank if use_lookahead_features else 0.0,
+        "remaining_vehicles": max(0, instance.max_vehicles - context.routes_used) / max(1, instance.max_vehicles),
+        "next_feasible_fraction": next_feasible / max(1, context.unserved_count - 1),
+        "urgency_rank": urgency_rank,
     }
 
 
 def normalized_feature_vector(
     instance: VRPTWInstance,
     context: CandidateContext,
-    *,
-    use_lookahead_features: bool = True,
 ) -> tuple[float, ...]:
-    values = normalized_features(instance, context, use_lookahead_features=use_lookahead_features)
+    values = normalized_features(instance, context)
     return tuple(values[name] for name in FEATURES)
-
-
 def _next_feasible_fractions(
     instance: VRPTWInstance,
     contexts: list[CandidateContext],
@@ -345,16 +334,11 @@ def compile_tree(tree: Tree):
 
 
 class _LazyFeatureVector:
-    """Compute and memoize only terminals accessed by the compiled expression.
-
-    The dense normalized_features API remains the reference/debug path. Values
-    are local to one candidate and are never reused across routing states.
-    """
+    """Compute and memoize only terminals used by the compiled expression."""
 
     __slots__ = (
         "instance",
         "context",
-        "lookahead",
         "values",
         "next_feasible_fraction",
         "urgency_rank",
@@ -364,13 +348,11 @@ class _LazyFeatureVector:
         self,
         instance: VRPTWInstance,
         context: CandidateContext,
-        lookahead: bool,
         next_feasible_fraction: float | None = None,
         urgency_rank: float | None = None,
     ):
         self.instance = instance
         self.context = context
-        self.lookahead = lookahead
         self.values: dict[int, float] = {}
         self.next_feasible_fraction = next_feasible_fraction
         self.urgency_rank = urgency_rank
@@ -403,8 +385,6 @@ class _LazyFeatureVector:
             return (customer.due_date - context.arrival_time) / max(1.0, instance.depot.due_date)
         if name == "wait_time":
             return max(0.0, customer.ready_time - context.arrival_time) / max(1.0, instance.depot.due_date)
-        if not self.lookahead:
-            return 0.0
         if name == "remaining_vehicles":
             return max(0, instance.max_vehicles - context.routes_used) / max(1, instance.max_vehicles)
         if name == "urgency_rank":
@@ -435,14 +415,13 @@ class _LazyFeatureVector:
                 next_feasible += 1
             return next_feasible / max(1, context.unserved_count - 1)
         raise KeyError(name)
-
-
-def make_priority(tree: Tree, *, use_lookahead_features: bool = True):
+def make_priority(tree: Tree, *, backend: str | None = None):
+    backend = backend or os.environ.get("GPRT_ROUTE_BACKEND", "auto")
+    if backend not in {"auto", "python", "numba"}:
+        raise ValueError("Routing backend must be auto, python, or numba")
     compiled = compile_tree(tree)
-    uses_next_feasible = use_lookahead_features and _tree_uses_feature(
-        tree, "next_feasible_fraction"
-    )
-    uses_urgency_rank = use_lookahead_features and _tree_uses_feature(tree, "urgency_rank")
+    uses_next_feasible = _tree_uses_feature(tree, "next_feasible_fraction")
+    uses_urgency_rank = _tree_uses_feature(tree, "urgency_rank")
     uses_prepared_features = uses_next_feasible or uses_urgency_rank
     prepared_features: dict[
         int, tuple[CandidateContext, float | None, float | None]
@@ -462,7 +441,6 @@ def make_priority(tree: Tree, *, use_lookahead_features: bool = True):
             _LazyFeatureVector(
                 instance,
                 context,
-                use_lookahead_features,
                 next_feasible_fraction,
                 urgency_rank,
             )
@@ -493,9 +471,23 @@ def make_priority(tree: Tree, *, use_lookahead_features: bool = True):
 
         priority.prepare_contexts = prepare_contexts
 
+    priority.route_backend = "python"
+    if backend != "python":
+        from . import fast_routing
+
+        if fast_routing.available():
+            program = fast_routing.pack_program(tree)
+
+            def native_constructor(instance: VRPTWInstance):
+                if not instance.customer_count:
+                    return []
+                return fast_routing.construct_routes(instance, program, distance_scale(instance))
+
+            priority.construct_routes = native_constructor
+            priority.route_backend = "numba"
+        elif backend == "numba":
+            raise RuntimeError("Numba backend unavailable; install requirements-fast.txt")
     return priority
-
-
 def _tree_uses_feature(tree: Tree, name: str) -> bool:
     if isinstance(tree, str):
         return tree == name
@@ -504,10 +496,31 @@ def _tree_uses_feature(tree: Tree, name: str) -> bool:
     return any(_tree_uses_feature(child, name) for child in tree[1:])
 
 
+def routing_runtime_info(backend: str | None = None) -> dict[str, Any]:
+    requested = backend or os.environ.get("GPRT_ROUTE_BACKEND", "auto")
+    if requested not in {"auto", "python", "numba"}:
+        raise ValueError("Routing backend must be auto, python, or numba")
+    selected = "python"
+    if requested != "python":
+        from . import fast_routing
+
+        if fast_routing.available():
+            selected = "numba"
+        elif requested == "numba":
+            raise RuntimeError("Numba backend unavailable; install requirements-fast.txt")
+    return {"requested": requested, "selected": selected, "numpy": version("numpy"),
+            "numba": version("numba") if selected == "numba" else None,
+            "llvmlite": version("llvmlite") if selected == "numba" else None,
+            "kernel": "postfix_float64_no_fastmath_v1" if selected == "numba" else "python_lazy",
+            "independent_python_route_checker": True}
+
+
 class FitnessEvaluator:
-    def __init__(self, complexity_penalty: float = 1e-4, *, use_lookahead_features: bool = True):
+    def __init__(self, complexity_penalty: float = 1e-4, *, route_backend: str | None = None):
         self.complexity_penalty = complexity_penalty
-        self.use_lookahead_features = use_lookahead_features
+        self.route_backend = route_backend or os.environ.get("GPRT_ROUTE_BACKEND", "auto")
+        self.runtime_info = routing_runtime_info(self.route_backend)
+
         self.stats = EvaluationStats()
         self.cache: dict[tuple[str, str, str], Solution] = {}
         self.config_hash = hashlib.sha256(
@@ -515,7 +528,7 @@ class FitnessEvaluator:
                 {
                     "distance": "euclidean_unrounded",
                     "tie_break": "customer_id",
-                    "feature_version": 2 if use_lookahead_features else 1,
+                    "feature_version": 2,
                     "solver": "shared_constructive_v2",
                 },
                 sort_keys=True,
@@ -547,9 +560,7 @@ class FitnessEvaluator:
         solution = solve(
             instance,
             "gp",
-            priority_function=make_priority(
-                tree, use_lookahead_features=self.use_lookahead_features
-            ),
+            priority_function=make_priority(tree, backend=self.route_backend),
         )
         self.stats.evaluator_seconds += time.perf_counter() - started
         self.cache[key] = solution

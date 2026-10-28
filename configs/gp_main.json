@@ -1,0 +1,15 @@
+{
+  "description": "GP-only baseline using the shared GPRT framework and evaluator",
+  "methods": ["gp"],
+  "output_dir": "outputs/gprt_vrptw/gp_main",
+  "cycles": 32,
+  "population_size": 64,
+  "transformer_samples": 32,
+  "gp_generations": 3,
+  "batch_size_instances": 4,
+  "validation_interval": 4,
+  "validation_candidates": 16,
+  "screening_train_size": 8,
+  "require_full_train_coverage": true,
+  "seeds": [20260914, 20260915, 20260916, 20260917, 20260918]
+}

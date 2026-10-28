@@ -1,5 +1,9 @@
 {
   "description": "Screening archive seeding: 4 old screened elites replace 4 random GP seeds; train/validation only",
+  "methods": ["gprt"],
+  "output_dir": "outputs/gprt_vrptw/archive_seed_8cycle",
+  "screening_run": true,
+  "skip_test": true,
   "cycles": 8,
   "population_size": 64,
   "transformer_samples": 32,
@@ -11,7 +15,6 @@
   "elite_screening_candidates": 8,
   "behavior_probe_size": 1,
   "advantage_mode": "batch_standardize",
-  "use_lookahead_features": true,
   "require_full_train_coverage": true,
   "seeds": [20260914, 20260915]
 }

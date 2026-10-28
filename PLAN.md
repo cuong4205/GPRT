@@ -1,4 +1,6 @@
-# Kế hoạch khóa luận 12 tuần: GP kết hợp LSTM và học tăng cường cho điều phối xe cảng có khả năng tổng quát hóa
+# Kế hoạch ban đầu (lưu trữ): GP+LSTM cho điều phối xe cảng
+
+> **Trạng thái:** đây là đề xuất ban đầu về điều phối xe cảng và GP+LSTM, không phải phạm vi project hiện hành. Project đã chuyển sang Solomon VRPTW và GPRT (Transformer + RL + GP). Phạm vi runner và cấu hình hiện tại được ghi trong [hướng dẫn chạy](docs/RUN_GPRT_VRPTW.md) và [kế hoạch nghiên cứu GPRT](.agents/skills/gprt-vrp-thesis/references/research-plan.md). Nội dung bên dưới được giữ làm lịch sử đề xuất.
 
 ## 1. Đề tài, mục tiêu và phạm vi
 

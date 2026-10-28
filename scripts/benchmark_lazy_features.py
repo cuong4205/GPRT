@@ -37,7 +37,7 @@ def main():
         compiled = compile_tree(tree)
         def dense(instance, context):
             return compiled(normalized_feature_vector(instance, context))
-        functions = {"dense": dense, "lazy": make_priority(tree)}
+        functions = {"dense": dense, "lazy": make_priority(tree, backend="python")}
         for instance in train:
             for function in functions.values():
                 solve(instance, "gp", priority_function=function)

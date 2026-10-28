@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 
-REPLACED = {"gp", "transformer_rl"}
+REPLACED = {"gp"}
 
 
 def write_csv(path: Path, rows: list[dict]) -> None:

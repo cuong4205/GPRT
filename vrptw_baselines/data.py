@@ -122,6 +122,25 @@ def _numbers(line: str) -> list[float]:
     return [float(value) for value in _NUMBER_RE.findall(line)]
 
 
+def validate_instance(instance: VRPTWInstance) -> None:
+    """Validate the canonical Solomon model without changing benchmark values."""
+    if type(instance.max_vehicles) is not int or instance.max_vehicles < 1:
+        raise ValueError("Vehicle count must be a positive integer")
+    if not math.isfinite(instance.capacity) or instance.capacity <= 0:
+        raise ValueError("Vehicle capacity must be finite and positive")
+    if len(instance.customers) < 2 or [c.customer_id for c in instance.customers] != list(range(len(instance.customers))):
+        raise ValueError("Customer IDs must be contiguous from zero with at least one customer")
+    for customer in instance.customers:
+        values = (customer.x, customer.y, customer.demand, customer.ready_time,
+                  customer.due_date, customer.service_time)
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError(f"Non-finite value for customer {customer.customer_id}")
+        if min(customer.demand, customer.ready_time, customer.service_time) < 0 or customer.ready_time > customer.due_date:
+            raise ValueError(f"Invalid demand/time window/service for customer {customer.customer_id}")
+    if instance.depot.demand != 0 or instance.depot.service_time != 0:
+        raise ValueError("Depot must have zero demand and service duration")
+
+
 def parse_instance(path: str | Path) -> VRPTWInstance:
     """Parse Solomon and Gehring-Homberger text instances.
 
@@ -155,13 +174,19 @@ def parse_instance(path: str | Path) -> VRPTWInstance:
             break
     if vehicle_values is None:
         raise ValueError(f"Missing vehicle count and capacity: {path}")
+    if not vehicle_values[0].is_integer():
+        raise ValueError(f"Vehicle count must be integral: {path}")
 
     customers: list[Customer] = []
     for line in lines[customer_idx + 1 :]:
         values = _numbers(line)
         if len(values) != 7:
+            if line.strip() and re.match(r"[-+]?\d", line.strip()):
+                raise ValueError(f"Malformed customer row: {path}: {line.strip()}")
             continue
         customer_id, x, y, demand, ready, due, service = values
+        if not customer_id.is_integer():
+            raise ValueError(f"Customer ID must be integral: {path}")
         customers.append(
             Customer(int(customer_id), x, y, demand, ready, due, service)
         )
@@ -172,7 +197,7 @@ def parse_instance(path: str | Path) -> VRPTWInstance:
         raise ValueError(f"Customer IDs must be contiguous from zero: {path}")
 
     source = "Gehring-Homberger" if "Gehring_Homberger" in path.parts else "Solomon"
-    return VRPTWInstance(
+    instance = VRPTWInstance(
         name=name,
         path=path.resolve(),
         max_vehicles=int(vehicle_values[0]),
@@ -181,6 +206,8 @@ def parse_instance(path: str | Path) -> VRPTWInstance:
         sha256=hashlib.sha256(raw).hexdigest(),
         source=source,
     )
+    validate_instance(instance)
+    return instance
 
 
 def discover_instances(data_dir: str | Path) -> list[VRPTWInstance]:

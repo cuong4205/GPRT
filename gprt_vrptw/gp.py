@@ -6,7 +6,7 @@ from vrptw_baselines.data import VRPTWInstance
 
 from .config import GPRTConfig
 from .evaluator import Fitness, FitnessEvaluator
-from .grammar import Grammar, Tree, SIGNATURES, prefix_to_tree, simplify_tree, tree_depth, tree_size, tree_to_prefix, tree_to_string
+from .grammar import Grammar, Tree, prefix_to_tree, simplify_tree, tree_to_prefix, tree_to_string
 
 
 def _paths(tree: Tree, prefix: tuple[int, ...] = ()) -> list[tuple[int, ...]]:
@@ -42,51 +42,28 @@ def crossover(a: Tree, b: Tree, rng: random.Random, grammar: Grammar) -> Tree:
     for _ in range(20):
         path = rng.choice(_paths(a))
         donors = _paths(b)
-        if grammar.typed:
-            target = _at(a, path)
-            target_type = SIGNATURES[target[0]][0] if isinstance(target, tuple) else "number"
-            donors = [p for p in donors if (
-                SIGNATURES[_at(b, p)[0]][0] if isinstance(_at(b, p), tuple) else "number"
-            ) == target_type]
-            if not donors:
-                continue
-        child = simplify_tree(_replace(a, path, _at(b, rng.choice(donors))), typed=grammar.typed)
+        child = simplify_tree(_replace(a, path, _at(b, rng.choice(donors))))
         if valid(child, grammar):
             return child
     return a
-
-
 def mutate(tree: Tree, rng: random.Random, grammar: Grammar) -> Tree:
     for _ in range(20):
         path = rng.choice(_paths(tree))
-        subtree_grammar = grammar
-        root_type = "number"
-        if grammar.typed:
-            target = _at(tree, path)
-            root_type = SIGNATURES[target[0]][0] if isinstance(target, tuple) else "number"
-            subtree_grammar = Grammar(
-                max_tokens=grammar.max_tokens - tree_size(tree) + tree_size(target),
-                max_depth=grammar.max_depth - len(path),
-                typed=True,
-                include_lookahead="next_feasible_fraction" in grammar.features,
-            )
-        replacement = subtree_grammar.random_tree(rng, grow=True, root_type=root_type)
-        child = simplify_tree(_replace(tree, path, replacement), typed=grammar.typed)
+        replacement = grammar.random_tree(rng, grow=True)
+        child = simplify_tree(_replace(tree, path, replacement))
         if valid(child, grammar):
             return child
     return tree
-
-
 def deduplicate_fill(population: list[Tree], size: int, rng: random.Random, grammar: Grammar) -> list[Tree]:
     unique: dict[str, Tree] = {}
     for tree in population:
-        tree = simplify_tree(tree, typed=grammar.typed)
+        tree = simplify_tree(tree)
         if not valid(tree, grammar):
             raise ValueError("GP seed violates grammar after simplification")
         unique.setdefault(tree_to_string(tree), tree)
     attempts = 0
     while len(unique) < size and attempts < size * 100:
-        tree = simplify_tree(grammar.random_tree(rng, grow=bool(attempts % 2)), typed=grammar.typed)
+        tree = simplify_tree(grammar.random_tree(rng, grow=bool(attempts % 2)))
         unique.setdefault(tree_to_string(tree), tree)
         attempts += 1
     values = list(unique.values())
@@ -106,9 +83,6 @@ def evolve_population(
     population = deduplicate_fill(seeds, config.population_size, rng, grammar)
     archive: dict[str, Fitness] = {}
     generation_best: list[Fitness] = []
-    if not config.use_gp:
-        scored = {tree_to_string(t): evaluator.fitness(t, instances) for t in population}
-        return population, scored, [min(scored.values())]
 
     for _ in range(config.gp_generations):
         scored_pairs = [(evaluator.fitness(tree, instances), tree) for tree in population]

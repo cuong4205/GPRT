@@ -6,16 +6,19 @@ import math
 from pathlib import Path
 
 
-EXPECTED_METHODS = {
+LEGACY_BASE_METHODS = {
     "edd",
     "gp",
     "transformer_rl",
     "gprt",
+}
+LEGACY_ABLATION_METHODS = {
     "gprt_no_transformer_seeding",
     "gprt_no_elite_imitation",
 }
+LEGACY_METHODS = LEGACY_BASE_METHODS | LEGACY_ABLATION_METHODS
+ACTIVE_METHODS = {"gp", "gprt"}
 EXPECTED_SEEDS = set(range(20260914, 20260919))
-NEURAL_METHODS = EXPECTED_METHODS - {"edd", "gp"}
 
 
 def validate(root: Path) -> dict[str, object]:
@@ -34,8 +37,11 @@ def validate(root: Path) -> dict[str, object]:
     else:
         assert seeds == EXPECTED_SEEDS
     if legacy:
-        assert methods == EXPECTED_METHODS
+        # Keep validating the archived 2026-09-14 pilot, which predates removal
+        # of these two methods from the active runner.
+        assert methods == LEGACY_METHODS
     else:
+        assert methods and methods.issubset(ACTIVE_METHODS)
         assert cycles >= math.ceil(32 / int(payload["protocol"]["config"]["batch_size_instances"]))
         assert payload["protocol"]["config"]["require_full_train_coverage"]
         assert payload["protocol"]["config"]["screening_train_size"] > 0
@@ -84,12 +90,17 @@ def validate(root: Path) -> dict[str, object]:
                 assert (run_dir / "best.pt").is_file()
                 assert (run_dir / "last.pt").is_file()
                 config = json.loads((run_dir / "config.json").read_text(encoding="utf-8"))
-                assert config["use_gp"] == (method != "transformer_rl")
-                assert config["use_transformer_seeding"] == (method != "gprt_no_transformer_seeding")
-                assert config["use_elite_imitation"] == (method not in {"transformer_rl", "gprt_no_elite_imitation"})
-                assert config.get("archive_seed_count", 0) == (
-                    4 if method == "gprt_archive_seeding" else 0
-                )
+                if legacy:
+                    assert config["use_gp"] == (method != "transformer_rl")
+                    assert config["use_transformer_seeding"] == (method != "gprt_no_transformer_seeding")
+                    assert config["use_elite_imitation"] == (method not in {"transformer_rl", "gprt_no_elite_imitation"})
+                    assert config.get("archive_seed_count", 0) == 0
+                else:
+                    assert method == "gprt"
+                    assert config["archive_seed_count"] == payload["protocol"]["config"]["archive_seed_count"]
+                    assert "use_gp" not in config
+                    assert "use_transformer_seeding" not in config
+                    assert "use_elite_imitation" not in config
                 run_split = json.loads((run_dir / "split_manifest.json").read_text(encoding="utf-8"))
                 assert run_split == split
                 if not legacy:

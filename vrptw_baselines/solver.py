@@ -46,9 +46,6 @@ class Solution:
 
 
 PriorityFunction = Callable[[VRPTWInstance, CandidateContext], float]
-CandidateSelector = Callable[
-    [VRPTWInstance, list[CandidateContext]], CandidateContext
-]
 
 
 def _candidate_contexts(
@@ -95,28 +92,27 @@ def solve(
     *,
     seed: int = 0,
     priority_function: PriorityFunction | None = None,
-    candidate_selector: CandidateSelector | None = None,
 ) -> Solution:
     """Construct a solution using one shared feasibility engine.
 
-    Supported methods are fifo, random, greedy, edd, gp, transformer, and rl.
-    GP and Transformer choose the lowest priority score. RL supplies a selector
-    that samples or ranks the currently feasible candidates. Ties in priority
-    methods are resolved by customer ID.
+    Supported construction methods are fifo, random, greedy, edd, and gp.
+    GP chooses the lowest priority score; ties are resolved by customer ID.
     """
 
     normalized_method = method.lower().replace("-", "_")
-    if normalized_method not in {"fifo", "random", "greedy", "edd", "gp", "transformer", "rl"}:
+    if normalized_method not in {"fifo", "random", "greedy", "edd", "gp"}:
         raise ValueError(f"Unknown method: {method}")
-    if normalized_method in {"gp", "transformer"} and priority_function is None:
+    if normalized_method == "gp" and priority_function is None:
         raise ValueError(f"{normalized_method.upper()} requires a priority_function")
-    if normalized_method == "rl" and candidate_selector is None:
-        raise ValueError("RL requires a candidate_selector")
-    if normalized_method != "rl" and candidate_selector is not None:
-        raise ValueError("candidate_selector is only valid for the RL method")
+    native_constructor = getattr(priority_function, "construct_routes", None) if normalized_method == "gp" else None
+    if native_constructor is not None:
+        accelerated_routes = native_constructor(instance)
+        if accelerated_routes is not None:
+            # Every accelerated route still passes the independent Python checker.
+            return _checked_solution(instance, normalized_method, accelerated_routes)
     prepare_contexts = (
         getattr(priority_function, "prepare_contexts", None)
-        if normalized_method in {"gp", "transformer"}
+        if normalized_method == "gp"
         else None
     )
 
@@ -164,7 +160,7 @@ def solve(
                         context.customer_id,
                     ),
                 )
-            elif normalized_method in {"gp", "transformer"}:
+            elif normalized_method == "gp":
                 assert priority_function is not None
                 chosen = min(
                     contexts,
@@ -173,12 +169,6 @@ def solve(
                         context.customer_id,
                     ),
                 )
-            else:
-                assert candidate_selector is not None
-                chosen = candidate_selector(instance, contexts)
-                if chosen not in contexts:
-                    raise ValueError("candidate_selector must return a feasible candidate")
-
             customer = instance.customers[chosen.customer_id]
             route.append(chosen.customer_id)
             unserved.remove(chosen.customer_id)
@@ -191,13 +181,18 @@ def solve(
         route.append(0)
         routes.append(tuple(route))
 
+    return _checked_solution(instance, normalized_method, routes)
+
+
+def _checked_solution(instance: VRPTWInstance, method: str, routes: list[tuple[int, ...]]) -> Solution:
     checked = validate_solution(instance, routes)
+    unserved = checked["missing"]
     feasible = checked["feasible"] and not unserved
     vehicle_count = len(routes)
     distance = float(checked["distance"])
     objective = (0.0 if feasible else 1e12) + vehicle_count * 1e6 + distance
     return Solution(
-        method=normalized_method,
+        method=method,
         routes=tuple(routes),
         feasible=feasible,
         vehicle_count=vehicle_count,

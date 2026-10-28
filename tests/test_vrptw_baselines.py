@@ -5,7 +5,6 @@ from math import hypot
 from pathlib import Path
 
 from vrptw_baselines.data import Customer, VRPTWInstance, parse_instance
-from standalone_models.gp import evaluate_tree, tree_depth, tree_size, tree_to_string
 from vrptw_baselines.solver import solve, validate_solution
 
 
@@ -54,15 +53,6 @@ class VRPTWBaselineTests(unittest.TestCase):
         self.assertFalse(checked["feasible"])
         self.assertIn(3, checked["missing"])
         self.assertIn(1, checked["duplicates"])
-
-    def test_gp_tree(self) -> None:
-        tree = ("add", "d_current", ("mul", 2.0, "wait"))
-        values = {"d_current": 0.25, "wait": 0.5}
-        self.assertAlmostEqual(evaluate_tree(tree, values), 1.25)
-        self.assertEqual(tree_size(tree), 5)
-        self.assertEqual(tree_depth(tree), 2)
-        self.assertEqual(tree_to_string(tree), "add(d_current, mul(2, wait))")
-
 
 if __name__ == "__main__":
     unittest.main()

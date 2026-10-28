@@ -44,16 +44,6 @@ ARITY = {
     "or": 2,
     "if_else": 3,
 }
-NUMERIC_OPERATORS = {"add", "sub", "mul", "pdiv", "min", "max"}
-BOOLEAN_OPERATORS = {"ge", "le", "and", "or"}
-SIGNATURES = {
-    **{op: ("number", ("number", "number")) for op in NUMERIC_OPERATORS},
-    "ge": ("boolean", ("number", "number")),
-    "le": ("boolean", ("number", "number")),
-    "and": ("boolean", ("boolean", "boolean")),
-    "or": ("boolean", ("boolean", "boolean")),
-    "if_else": ("number", ("boolean", "number", "number")),
-}
 VOCAB = SPECIAL + CONSTANT_TOKENS + FEATURES + tuple(ARITY)
 TOKEN_TO_ID = {token: index for index, token in enumerate(VOCAB)}
 
@@ -117,12 +107,12 @@ def tree_to_string(tree: Tree) -> str:
     return f"{tree[0]}({', '.join(tree_to_string(c) for c in tree[1:])})"
 
 
-def simplify_tree(tree: Tree, *, typed: bool = False) -> Tree:
+def simplify_tree(tree: Tree) -> Tree:
     """Apply semantics-preserving, vocabulary-safe simplifications."""
     if not isinstance(tree, tuple):
         return tree
     op = str(tree[0])
-    children = tuple(simplify_tree(child, typed=typed) for child in tree[1:])
+    children = tuple(simplify_tree(child) for child in tree[1:])
     if op in {"add", "sub"} and children[1] == 0.0:
         return children[0]
     if op in {"mul", "pdiv"} and children[1] == 1.0:
@@ -131,7 +121,7 @@ def simplify_tree(tree: Tree, *, typed: bool = False) -> Tree:
         return children[0]
     if op == "sub" and children[0] == children[1]:
         return 0.0
-    if not typed and op in {"ge", "le"} and children[0] == children[1]:
+    if op in {"ge", "le"} and children[0] == children[1]:
         return 1.0
     if (
         op == "if_else"
@@ -140,14 +130,12 @@ def simplify_tree(tree: Tree, *, typed: bool = False) -> Tree:
     ):
         return children[1] if children[0] == 1.0 else children[2]
     candidate = (op, *children)
-    if (not typed or op not in BOOLEAN_OPERATORS) and all(isinstance(child, (int, float)) for child in children):
+    if all(isinstance(child, (int, float)) for child in children):
         value = safe_evaluate(candidate, {})
         token = f"{float(value):g}"
         if token in CONSTANT_TOKENS:
             return float(value)
     return candidate
-
-
 def safe_evaluate(tree: Tree, values: dict[str, float], limit: float = 1e6) -> float:
     if isinstance(tree, str):
         value = float(values[tree])
@@ -190,7 +178,6 @@ class GrammarState:
     """Pending prefix slots, storing the depth of each slot (next slot is last)."""
 
     pending_depths: list[int]
-    pending_types: list[str]
     expression_tokens: int = 0
 
     @property
@@ -199,18 +186,10 @@ class GrammarState:
 
 
 class Grammar:
-    def __init__(
-        self,
-        max_tokens: int = 63,
-        max_depth: int = 6,
-        *,
-        typed: bool = False,
-        include_lookahead: bool = True,
-    ):
+    def __init__(self, max_tokens: int = 63, max_depth: int = 6):
         self.max_tokens = max_tokens
         self.max_depth = max_depth
-        self.typed = typed
-        self.features = FEATURES if include_lookahead else CORE_FEATURES
+        self.features = FEATURES
         self.vocab = SPECIAL + CONSTANT_TOKENS + self.features + tuple(ARITY)
         self.token_to_id = {token: index for index, token in enumerate(self.vocab)}
         self.id_to_token = dict(enumerate(self.vocab))
@@ -218,10 +197,8 @@ class Grammar:
         self.bos_id = self.token_to_id["BOS"]
         self.eos_id = self.token_to_id["EOS"]
 
-    def initial_state(self, root_type: str = "number") -> GrammarState:
-        if root_type not in {"number", "boolean"}:
-            raise ValueError("root_type must be number or boolean")
-        return GrammarState([0], [root_type if self.typed else "any"], 0)
+    def initial_state(self) -> GrammarState:
+        return GrammarState([0], 0)
 
     def valid_tokens(self, state: GrammarState) -> list[str]:
         if state.complete:
@@ -232,35 +209,13 @@ class Grammar:
         depth = state.pending_depths[-1]
         if depth > self.max_depth:
             return []
-        required_type = state.pending_types[-1]
-        base_pending_types = state.pending_types[:-1]
         candidates: list[str] = []
         for token in CONSTANT_TOKENS + self.features + tuple(ARITY):
             arity = ARITY.get(token, 0)
-            return_type = SIGNATURES[token][0] if token in SIGNATURES else "number"
-            if self.typed and return_type != required_type:
-                continue
             if arity and depth >= self.max_depth:
                 continue
-            child_types = (
-                SIGNATURES[token][1]
-                if self.typed and token in SIGNATURES
-                else ("any",) * arity
-            )
-            new_pending_types = base_pending_types + list(reversed(child_types))
             new_pending_depths = state.pending_depths[:-1] + [depth + 1] * arity
-            # A boolean has no terminal: its shortest tree is a comparison
-            # with two numeric leaves, requiring one additional depth level.
-            if any(
-                slot_depth + (slot_type == "boolean") > self.max_depth
-                for slot_depth, slot_type in zip(new_pending_depths, new_pending_types)
-            ):
-                continue
-            min_tokens_needed = sum(
-                3 if pending_type == "boolean" else 1
-                for pending_type in new_pending_types
-            )
-            if min_tokens_needed <= remaining_after:
+            if len(new_pending_depths) <= remaining_after:
                 candidates.append(token)
         return candidates
 
@@ -273,12 +228,9 @@ class Grammar:
         if token == "EOS":
             return
         depth = state.pending_depths.pop()
-        state.pending_types.pop()
         arity = ARITY.get(token, 0)
-        child_types = SIGNATURES[token][1] if self.typed and token in SIGNATURES else ("any",) * arity
         # Prefix decoding fills the first child next, while stacks pop from the end.
         state.pending_depths.extend([depth + 1] * arity)
-        state.pending_types.extend(reversed(child_types))
         state.expression_tokens += 1
 
     def validate_expression(self, tokens: list[str] | tuple[str, ...]) -> bool:
@@ -295,15 +247,15 @@ class Grammar:
         except (KeyError, ValueError):
             return False
 
-    def random_tree(self, rng: random.Random, *, grow: bool = True, root_type: str = "number") -> Tree:
-        state = self.initial_state(root_type)
+    def random_tree(self, rng: random.Random, *, grow: bool = True) -> Tree:
+        state = self.initial_state()
         tokens: list[str] = []
         while not state.complete:
             valid = self.valid_tokens(state)
             if not valid:
-                raise ValueError("No tree can complete the requested type within the grammar budget")
-            terminals = [t for t in valid if t not in ARITY]
-            operators = [t for t in valid if t in ARITY]
+                raise ValueError("No tree can complete within the grammar budget")
+            terminals = [token for token in valid if token not in ARITY]
+            operators = [token for token in valid if token in ARITY]
             choose_terminal = grow and terminals and rng.random() < 0.35
             token = rng.choice(terminals if choose_terminal or not operators else operators)
             self.step(state, token)
@@ -314,10 +266,10 @@ class Grammar:
         tokens = tree_to_prefix(tree)
         if not self.validate_expression(tokens):
             raise ValueError("Tree violates grammar limits")
-        ids = [self.token_to_id[t] for t in tokens]
+        ids = [self.token_to_id[token] for token in tokens]
         return [self.bos_id, *ids, self.eos_id] if include_special else ids
 
     def decode_expression(self, ids: list[int] | tuple[int, ...]) -> Tree:
-        tokens = [self.id_to_token[i] for i in ids]
-        tokens = [t for t in tokens if t not in {"PAD", "BOS", "EOS"}]
+        tokens = [self.id_to_token[index] for index in ids]
+        tokens = [token for token in tokens if token not in {"PAD", "BOS", "EOS"}]
         return prefix_to_tree(tokens)

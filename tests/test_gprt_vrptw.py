@@ -4,6 +4,7 @@ import json
 import random
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import torch
@@ -128,20 +129,6 @@ class GrammarTests(unittest.TestCase):
             tree = grammar.random_tree(rng)
             self.assertAlmostEqual(compile_tree(tree)(vector), safe_evaluate(tree, values), places=10)
 
-    def test_typed_grammar_keeps_boolean_nodes_in_boolean_slots(self) -> None:
-        grammar = Grammar(max_tokens=7, max_depth=2, typed=True)
-        state = grammar.initial_state()
-        self.assertNotIn("ge", grammar.valid_tokens(state))
-        grammar.step(state, "if_else")
-        self.assertIn("ge", grammar.valid_tokens(state))
-        self.assertNotIn("d_current", grammar.valid_tokens(state))
-        grammar.step(state, "ge")
-        self.assertIn("d_current", grammar.valid_tokens(state))
-        rng = random.Random(123)
-        for _ in range(30):
-            self.assertTrue(grammar.validate_expression(tree_to_prefix(grammar.random_tree(rng))))
-
-
 class TransformerTests(unittest.TestCase):
     def setUp(self) -> None:
         seed_everything(123)
@@ -217,8 +204,6 @@ class ProtocolTests(unittest.TestCase):
         self.assertIn("remaining_vehicles", values)
         self.assertIn("next_feasible_fraction", values)
         self.assertIn("urgency_rank", values)
-        grammar = Grammar(include_lookahead=False)
-        self.assertNotIn("urgency_rank", grammar.vocab)
 
     def test_incomplete_train_coverage_is_rejected(self) -> None:
         config = tiny_config(cycles=1)
@@ -328,14 +313,19 @@ class ProtocolTests(unittest.TestCase):
             full = GPRTTrainer(config)
             result_full = full.train(train, validation, seed=77, output_dir=root / "full", split_manifest=manifest)
             interrupted = GPRTTrainer(config)
-            interrupted.train(
-                train,
-                validation,
-                seed=77,
-                output_dir=root / "resume",
-                split_manifest=manifest,
-                stop_after_cycle=1,
-            )
+            save_checkpoint = interrupted.save_checkpoint
+
+            def interrupt_after_checkpoint(path, seed, split_manifest):
+                save_checkpoint(path, seed, split_manifest)
+                if interrupted.completed_cycles == 1:
+                    raise RuntimeError("simulated interruption after checkpoint")
+
+            with patch.object(interrupted, "save_checkpoint", side_effect=interrupt_after_checkpoint):
+                with self.assertRaisesRegex(RuntimeError, "simulated interruption"):
+                    interrupted.train(
+                        train, validation, seed=77, output_dir=root / "resume",
+                        split_manifest=manifest,
+                    )
             resumed = GPRTTrainer(config)
             result_resumed = resumed.train(
                 train,
@@ -377,26 +367,6 @@ class ProtocolTests(unittest.TestCase):
                 trees.append(result.best_tree)
             self.assertEqual(trees[0], trees[1])
             self.assertTrue(all(torch.equal(states[0][key], states[1][key]) for key in states[0]))
-
-    def test_standalone_rl_uses_declared_fitness_budget(self) -> None:
-        train = [tiny_instance("train", "train")]
-        validation = [tiny_instance("val", "val")]
-        config = tiny_config(cycles=1)
-        config.use_gp = False
-        config.use_elite_imitation = False
-        config.standalone_rl_samples_per_cycle = 6
-        with tempfile.TemporaryDirectory() as temp:
-            trainer = GPRTTrainer(config)
-            trainer.train(
-                train,
-                validation,
-                seed=99,
-                output_dir=Path(temp),
-                split_manifest={"train": "train", "val": "validation"},
-            )
-            # Six policy rewards plus two common-screening and two validation requests.
-            self.assertEqual(trainer.evaluator.stats.fitness_requests, 10)
-
 
 if __name__ == "__main__":
     unittest.main()

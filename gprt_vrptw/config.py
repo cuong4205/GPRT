@@ -20,7 +20,6 @@ class GPRTConfig:
     # Neural-GP loop.
     population_size: int = 64
     transformer_samples: int = 32
-    standalone_rl_samples_per_cycle: int = 352
     tournament_size: int = 5
     elite_count: int = 2
     crossover_rate: float = 0.6
@@ -44,17 +43,8 @@ class GPRTConfig:
     baseline_decay: float = 0.9
     advantage_mode: str = "batch_standardize"
 
-    # Optional structural and feature ablations. New feature vocabulary makes
-    # pre-improvement checkpoints intentionally incompatible with this protocol.
-    typed_grammar: bool = False
-    use_lookahead_features: bool = True
+    # Fixed full-GPRT feature-v2 protocol.
     require_full_train_coverage: bool = True
-
-    # Ablations.
-    use_transformer_seeding: bool = True
-    use_gp: bool = True
-    use_elite_imitation: bool = True
-    use_reinforce: bool = True
 
     def validate(self) -> None:
         if self.d_model % self.nhead:
@@ -64,7 +54,7 @@ class GPRTConfig:
         rates = self.crossover_rate + self.mutation_rate + self.reproduction_rate
         if abs(rates - 1.0) > 1e-9:
             raise ValueError("GP crossover/mutation/reproduction rates must sum to 1")
-        if min(self.max_tokens, self.population_size, self.cycles, self.standalone_rl_samples_per_cycle) < 1:
+        if min(self.max_tokens, self.population_size, self.cycles) < 1:
             raise ValueError("positive token, population, and cycle limits are required")
         if min(
             self.batch_size_instances,
@@ -76,13 +66,9 @@ class GPRTConfig:
             raise ValueError("screening, validation, batch, and probe sizes must be positive")
         if self.archive_seed_count < 0:
             raise ValueError("archive_seed_count cannot be negative")
-        random_seed_slots = self.population_size - (
-            self.transformer_samples if self.use_transformer_seeding else 0
-        )
+        random_seed_slots = self.population_size - self.transformer_samples
         if self.archive_seed_count > random_seed_slots:
             raise ValueError("archive seeds must replace random seeds, not increase the population")
-        if self.archive_seed_count and not self.use_gp:
-            raise ValueError("archive seeding requires GP")
         if self.advantage_mode not in {"ewma_scale", "batch_standardize", "none"}:
             raise ValueError("advantage_mode must be ewma_scale, batch_standardize, or none")
 

@@ -129,19 +129,11 @@ class GPRTTrainer:
     def __init__(self, config: GPRTConfig, *, device: str = "cpu"):
         config.validate()
         self.config = config
-        self.grammar = Grammar(
-            config.max_tokens,
-            config.max_depth,
-            typed=config.typed_grammar,
-            include_lookahead=config.use_lookahead_features,
-        )
+        self.grammar = Grammar(config.max_tokens, config.max_depth)
         self.device = torch.device(device)
         self.model = CausalTransformer(self.grammar, config).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate)
-        self.evaluator = FitnessEvaluator(
-            config.complexity_penalty,
-            use_lookahead_features=config.use_lookahead_features,
-        )
+        self.evaluator = FitnessEvaluator(config.complexity_penalty)
         self.baseline: float | None = None
         self.archive: dict[str, dict[str, Any]] = {}
         self.logs: list[dict[str, Any]] = []
@@ -185,7 +177,6 @@ class GPRTTrainer:
             "grammar": {
                 "max_tokens": self.grammar.max_tokens,
                 "max_depth": self.grammar.max_depth,
-                "typed": self.grammar.typed,
             },
             "split": split_manifest,
             "archive": self.archive,
@@ -205,6 +196,7 @@ class GPRTTrainer:
             },
             "evaluator_cache": self.evaluator.cache,
             "evaluator_stats": self.evaluator.stats,
+            "routing_runtime": self.evaluator.runtime_info,
         }
 
     def save_checkpoint(self, path: Path, seed: int, split_manifest: dict[str, str]) -> None:
@@ -288,65 +280,35 @@ class GPRTTrainer:
             self.seen_training_instances.update(instance.name.lower() for instance in batch)
             self.model.train()
             transformer_started = time.perf_counter()
-            if self.config.use_gp:
-                samples = self.model.generate(self.config.transformer_samples, greedy=False)
-            else:
-                # Equal-fitness-budget standalone RL baseline. Sampling and the
-                # later likelihood pass both use eval mode, so recomputed
-                # on-policy log-probabilities are not perturbed by dropout masks.
-                self.model.eval()
-                with torch.no_grad():
-                    samples = self.model.generate(
-                        self.config.standalone_rl_samples_per_cycle, greedy=False
-                    )
+            samples = self.model.generate(self.config.transformer_samples, greedy=False)
             transformer_sample_seconds = time.perf_counter() - transformer_started
             on_policy_trees = [sample.tree for sample in samples]
 
             neural_expressions = {tree_to_string(tree) for tree in on_policy_trees}
-            if self.config.use_gp:
-                neural_seed_trees = (
-                    list(on_policy_trees) if self.config.use_transformer_seeding else []
-                )
-                archive_seed_trees, archive_seed_pool_size = select_archive_seeds(
-                    self.archive,
-                    self.evaluator,
-                    screening_instances,
-                    behavior_probe,
-                    self.config.archive_seed_count,
-                    excluded_expressions=neural_expressions,
-                )
-                seeds = neural_seed_trees + archive_seed_trees
-                random_seed_trees: list[Tree] = []
-                while len(seeds) < self.config.population_size:
-                    tree = self.grammar.random_tree(self.rng, grow=len(seeds) % 2 == 0)
-                    seeds.append(tree)
-                    random_seed_trees.append(tree)
-            else:
-                neural_seed_trees = []
-                archive_seed_trees = []
-                archive_seed_pool_size = 0
-                random_seed_trees = []
-                seeds = []
+            neural_seed_trees = list(on_policy_trees)
+            archive_seed_trees, archive_seed_pool_size = select_archive_seeds(
+                self.archive,
+                self.evaluator,
+                screening_instances,
+                behavior_probe,
+                self.config.archive_seed_count,
+                excluded_expressions=neural_expressions,
+            )
+            seeds = neural_seed_trees + archive_seed_trees
+            random_seed_trees: list[Tree] = []
+            while len(seeds) < self.config.population_size:
+                tree = self.grammar.random_tree(self.rng, grow=len(seeds) % 2 == 0)
+                seeds.append(tree)
+                random_seed_trees.append(tree)
 
             gp_started = time.perf_counter()
-            if self.config.use_gp:
-                final_population, gp_scores, generation_best = evolve_population(
-                    seeds, batch, self.evaluator, self.rng, self.grammar, self.config
-                )
-            else:
-                # Transformer+RL ablation: no random/GP individual may affect the
-                # policy reward or candidate archive.
-                final_population = list(on_policy_trees)
-                gp_scores = {}
-                generation_best = []
+            final_population, gp_scores, generation_best = evolve_population(
+                seeds, batch, self.evaluator, self.rng, self.grammar, self.config
+            )
             gp_seconds = time.perf_counter() - gp_started
 
             initial_fitness = [self.evaluator.fitness(tree, batch) for tree in on_policy_trees]
-            final_fitness = (
-                [self.evaluator.fitness(tree, batch) for tree in final_population]
-                if self.config.use_gp
-                else initial_fitness
-            )
+            final_fitness = [self.evaluator.fitness(tree, batch) for tree in final_population]
             for tree, fitness in zip(on_policy_trees, initial_fitness):
                 record_observation(self.archive, tree, fitness, cycle, batch)
             for tree, fitness in zip(final_population, final_fitness):
@@ -368,42 +330,32 @@ class GPRTTrainer:
             advantages = normalized_advantages(
                 rewards, baseline_for_loss, self.config.advantage_mode
             )
-            if self.config.use_gp:
-                log_probs = torch.stack([sample.log_probability for sample in samples])
-                sample_entropy = torch.stack([sample.entropy for sample in samples]).mean()
-            else:
-                log_probs, _, sample_entropy = self.model.teacher_forced(on_policy_trees)
-            policy_loss = -(advantages * log_probs).mean() if self.config.use_reinforce else log_probs.sum() * 0.0
+            log_probs = torch.stack([sample.log_probability for sample in samples])
+            sample_entropy = torch.stack([sample.entropy for sample in samples]).mean()
+            policy_loss = -(advantages * log_probs).mean()
 
             elite_count = max(1, math.ceil(len(final_population) * self.config.elite_fraction))
             batch_elite_pairs = sorted(
                 zip(final_fitness, final_population), key=lambda item: item[0]
             )[: self.config.elite_screening_candidates]
             # Avoid imitating a tree merely because it met an easy current batch.
-            if self.config.use_elite_imitation:
-                screened_elites = sorted(
-                    [
-                        (
+            screened_elites = sorted(
+                [
+                    (
                         self.evaluator.fitness(
                             tree, screening_instances, phase="screening"
                         ),
                         tree,
-                        )
-                        for _, tree in batch_elite_pairs
-                    ],
-                    key=lambda item: (item[0], tree_to_string(item[1])),
-                )
-                elite_trees = _behaviorally_diverse_elites(
-                    screened_elites, elite_count, screening_instances, self.evaluator
-                )
-            else:
-                elite_trees = [tree for _, tree in batch_elite_pairs[:elite_count]]
+                    )
+                    for _, tree in batch_elite_pairs
+                ],
+                key=lambda item: (item[0], tree_to_string(item[1])),
+            )
+            elite_trees = _behaviorally_diverse_elites(
+                screened_elites, elite_count, screening_instances, self.evaluator
+            )
             transformer_train_started = time.perf_counter()
-            if self.config.use_elite_imitation:
-                _, elite_nll, teacher_entropy = self.model.teacher_forced(elite_trees)
-            else:
-                elite_nll = self.model.output.weight.sum() * 0.0
-                teacher_entropy = sample_entropy
+            _, elite_nll, teacher_entropy = self.model.teacher_forced(elite_trees)
             entropy = 0.5 * (sample_entropy + teacher_entropy)
             weighted_elite_loss = self.config.alpha * elite_nll
             loss = policy_loss + weighted_elite_loss - self.config.beta * entropy
@@ -466,6 +418,7 @@ class GPRTTrainer:
             stats = _stats_delta(stats_before, self.evaluator.stats)
             log = {
                 "cycle": cycle,
+                "route_backend": self.evaluator.runtime_info["selected"],
                 "batch_instances": [instance.name.upper() for instance in batch],
                 "loss": float(loss.detach().item()),
                 "policy_loss": float(policy_loss.detach().item()),
@@ -587,6 +540,7 @@ class GPRTTrainer:
         )
         summary = {
             "seed": seed,
+            "routing_runtime": self.evaluator.runtime_info,
             "completed_cycles": self.completed_cycles,
             "best_validation_fitness": _fitness_json(self.best_validation_fitness),
             "best_expression": tree_to_string(self.best_tree) if self.best_tree is not None else None,
