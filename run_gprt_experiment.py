@@ -112,8 +112,10 @@ def run_gp_baseline(
     archive: dict[str, dict[str, Any]] = {}
     best_tree: Tree | None = None
     best_validation: Fitness | None = None
+    seen_training_instances: set[str] = set()
     started = time.perf_counter()
     for cycle in range(1, config.cycles + 1):
+        seen_training_instances.update(i.name.lower() for i in batches[(cycle - 1) % len(batches)])
         seeds = [grammar.random_tree(rng, grow=index % 2 == 0) for index in range(config.population_size)]
         population, _, _ = evolve_population(
             seeds,
@@ -145,6 +147,10 @@ def run_gp_baseline(
                     best_tree, best_validation = tree, fitness
     assert best_tree is not None and best_validation is not None
     return best_tree, best_validation, {
+        "completed_cycles": config.cycles,
+        "seen_training_instances": sorted(seen_training_instances),
+        "training_coverage_count": len(seen_training_instances),
+        "training_coverage_rate": len(seen_training_instances) / len(train),
         "fitness_requests": evaluator.stats.fitness_requests,
         "unique_evaluations": evaluator.stats.unique_evaluations,
         "instance_evaluations": evaluator.stats.instance_evaluations,
@@ -326,6 +332,17 @@ def main() -> None:
             if method == "gp":
                 tree, validation_fitness, search = run_gp_baseline(train, validation, config, seed)
                 (run_dir / "final_heuristic.txt").write_text(tree_to_string(tree) + "\n", encoding="utf-8")
+                (run_dir / "config.json").write_text(json.dumps(config.to_dict(), indent=2), encoding="utf-8")
+                (run_dir / "split_manifest.json").write_text(json.dumps(split, indent=2, sort_keys=True), encoding="utf-8")
+                (run_dir / "training_summary.json").write_text(json.dumps({
+                    "seed": seed,
+                    "completed_cycles": search["completed_cycles"],
+                    "seen_training_instances": search["seen_training_instances"],
+                    "training_coverage_count": search["training_coverage_count"],
+                    "training_coverage_rate": search["training_coverage_rate"],
+                    "best_validation_fitness": list(validation_fitness),
+                    "best_expression": tree_to_string(tree),
+                }, indent=2), encoding="utf-8")
             else:
                 trainer = GPRTTrainer(config, device=device)
                 search_started = time.perf_counter()
