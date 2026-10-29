@@ -8,6 +8,16 @@ Hướng dẫn: [chạy thí nghiệm](docs/RUN_GPRT_VRPTW.md), [GP và GPRT](do
 
 ## Chạy
 
+Luồng đầy đủ **GP + GPRT 32 cycle → khóa heuristic text → validation động đủ 12
+instance → test tĩnh → test mô phỏng động**:
+
+```powershell
+.venv/Scripts/python.exe run_end_to_end.py --output-dir outputs/end_to_end_32cycle/run_01
+```
+
+Xem trước bằng `--dry-run`, tiếp tục các stage đã hoàn tất bằng `--resume`.
+Chi tiết split, gate, cấu hình và artifact: [luồng end-to-end](docs/END_TO_END_GPRT_GP_VI.md).
+
 Cài dependency và chạy test:
 
 ```powershell
