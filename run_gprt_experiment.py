@@ -19,7 +19,7 @@ from gprt_vrptw.config import GPRTConfig
 from gprt_vrptw.evaluator import Fitness, FitnessEvaluator, distance_scale, routing_runtime_info
 from gprt_vrptw.gp import evolve_population
 from gprt_vrptw.grammar import Grammar, Tree, tree_to_string
-from gprt_vrptw.selection import record_observation, screen_archive
+from gprt_vrptw.selection import record_observation, screen_archive, select_archive_seeds
 from gprt_vrptw.splits import family, split_solomon, stratified_batches, stratified_sample
 from gprt_vrptw.trainer import GPRTTrainer
 
@@ -99,10 +99,17 @@ def run_gp_baseline(
     validation: list[VRPTWInstance],
     config: GPRTConfig,
     seed: int,
+    *,
+    evaluator=None,
+    grammar: Grammar | None = None,
+    initial_trees: tuple[Tree, ...] = (),
+    progress: bool = False,
 ) -> tuple[Tree, Fitness, dict[str, Any]]:
     rng = random.Random(seed)
-    grammar = Grammar(config.max_tokens, config.max_depth)
-    evaluator = FitnessEvaluator(config.complexity_penalty)
+    grammar = grammar if grammar is not None else Grammar(config.max_tokens, config.max_depth)
+    evaluator = evaluator if evaluator is not None else FitnessEvaluator(config.complexity_penalty)
+    if len(initial_trees) + config.archive_seed_count > config.population_size - config.transformer_samples:
+        raise ValueError("Initial and archive seeds exceed the shared seed budget")
     batches = stratified_batches(train, config.batch_size_instances, seed=seed)
     if config.require_full_train_coverage and config.cycles < len(batches):
         raise ValueError(
@@ -115,8 +122,15 @@ def run_gp_baseline(
     seen_training_instances: set[str] = set()
     started = time.perf_counter()
     for cycle in range(1, config.cycles + 1):
+        cycle_started = time.perf_counter()
         seen_training_instances.update(i.name.lower() for i in batches[(cycle - 1) % len(batches)])
-        seeds = [grammar.random_tree(rng, grow=index % 2 == 0) for index in range(config.population_size)]
+        old_elites, _ = select_archive_seeds(
+            archive, evaluator, screening, screening[:config.behavior_probe_size],
+            config.archive_seed_count,
+        )
+        seeds = old_elites + list(initial_trees)
+        while len(seeds) < config.population_size:
+            seeds.append(grammar.random_tree(rng, grow=len(seeds) % 2 == 0))
         population, _, _ = evolve_population(
             seeds,
             batches[(cycle - 1) % len(batches)],
@@ -145,6 +159,13 @@ def run_gp_baseline(
                 fitness = evaluator.fitness(tree, validation, phase="validation")
                 if best_validation is None or fitness < best_validation:
                     best_tree, best_validation = tree, fitness
+        if progress:
+            print(json.dumps({
+                "method": "gp", "cycle": cycle,
+                "validation_fitness": list(best_validation) if best_validation is not None else None,
+                "best_expression": tree_to_string(best_tree) if best_tree is not None else None,
+                "wall_seconds": time.perf_counter() - cycle_started,
+            }), flush=True)
     assert best_tree is not None and best_validation is not None
     return best_tree, best_validation, {
         "completed_cycles": config.cycles,

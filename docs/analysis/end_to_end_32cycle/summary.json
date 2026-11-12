@@ -1,0 +1,889 @@
+{
+  "artifact_checks": {
+    "total": 62,
+    "mismatches": [
+      {
+        "stage": "report",
+        "path": "end_to_end_report.md",
+        "matched": false
+      }
+    ]
+  },
+  "counts": {
+    "static": 132,
+    "final": 528,
+    "pilot": 396
+  },
+  "source_checks": [
+    {
+      "path": "run_end_to_end.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "run_gprt_experiment.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "run_dvrpsim_dynamic.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "validate_gprt_results.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "validate_dvrpsim_results.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "gprt_vrptw/__init__.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "gprt_vrptw/config.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "gprt_vrptw/evaluator.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "gprt_vrptw/fast_routing.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "gprt_vrptw/gp.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "gprt_vrptw/grammar.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "gprt_vrptw/selection.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "gprt_vrptw/splits.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "gprt_vrptw/trainer.py",
+      "raw_match": false,
+      "lf_match": true
+    },
+    {
+      "path": "gprt_vrptw/transformer.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "dvrpsim_dynamic/__init__.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "dvrpsim_dynamic/routing.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "dvrpsim_dynamic/scenario.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "dvrpsim_dynamic/simulator.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "vrptw_baselines/__init__.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "vrptw_baselines/data.py",
+      "raw_match": true,
+      "lf_match": true
+    },
+    {
+      "path": "vrptw_baselines/solver.py",
+      "raw_match": true,
+      "lf_match": true
+    }
+  ],
+  "stages": {
+    "train": {
+      "status": "complete",
+      "seconds": 2031.989798
+    },
+    "lock_heuristics": {
+      "status": "complete",
+      "seconds": 2.494025
+    },
+    "dynamic_validation": {
+      "status": "complete",
+      "seconds": 111.274998
+    },
+    "static_test": {
+      "status": "complete",
+      "seconds": 1.198101
+    },
+    "dynamic_test": {
+      "status": "complete",
+      "seconds": 179.761234
+    },
+    "report": {
+      "status": "complete",
+      "seconds": 0.216129
+    }
+  },
+  "offline": {
+    "gp": {
+      "end_to_end_seconds": {
+        "mean": 97.12111616740007,
+        "sd": 1.1517786851274174,
+        "median": 97.29462357900002,
+        "min": 95.81613762699999,
+        "max": 98.36859527700017
+      },
+      "peak_rss_mb": {
+        "mean": 642.21953125,
+        "sd": 32.76019168131624,
+        "median": 642.32421875,
+        "min": 598.96484375,
+        "max": 682.37890625
+      },
+      "instance_evaluations": {
+        "mean": 30729.8,
+        "sd": 218.1598038136265,
+        "median": 30795.0,
+        "min": 30433.0,
+        "max": 30930.0
+      },
+      "train_instance_evaluations": {
+        "mean": 29953.4,
+        "sd": 188.2625825808198,
+        "median": 30002.0,
+        "min": 29665.0,
+        "max": 30140.0
+      },
+      "screening_instance_evaluations": {
+        "mean": 279.6,
+        "sd": 16.890825912311097,
+        "median": 286.0,
+        "min": 252.0,
+        "max": 295.0
+      },
+      "validation_instance_evaluations": {
+        "mean": 496.8,
+        "sd": 34.57166469813104,
+        "median": 504.0,
+        "min": 444.0,
+        "max": 540.0
+      },
+      "diagnostic_instance_evaluations": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "fitness_requests": {
+        "mean": 11520.0,
+        "sd": 0.0,
+        "median": 11520.0,
+        "min": 11520.0,
+        "max": 11520.0
+      }
+    },
+    "gprt": {
+      "end_to_end_seconds": {
+        "mean": 308.2008092701999,
+        "sd": 9.114127075038304,
+        "median": 309.0638332470003,
+        "min": 294.323513071,
+        "max": 316.265523388
+      },
+      "peak_rss_mb": {
+        "mean": 1253.5390625,
+        "sd": 61.41561652035811,
+        "median": 1277.0546875,
+        "min": 1149.40625,
+        "max": 1304.37890625
+      },
+      "instance_evaluations": {
+        "mean": 31824.0,
+        "sd": 94.03988515518296,
+        "median": 31841.0,
+        "min": 31680.0,
+        "max": 31922.0
+      },
+      "train_instance_evaluations": {
+        "mean": 26072.8,
+        "sd": 162.0129624443674,
+        "median": 26079.0,
+        "min": 25831.0,
+        "max": 26235.0
+      },
+      "screening_instance_evaluations": {
+        "mean": 1625.0,
+        "sd": 35.895682191595135,
+        "median": 1638.0,
+        "min": 1587.0,
+        "max": 1664.0
+      },
+      "validation_instance_evaluations": {
+        "mean": 492.0,
+        "sd": 60.597029630172464,
+        "median": 516.0,
+        "min": 384.0,
+        "max": 528.0
+      },
+      "diagnostic_instance_evaluations": {
+        "mean": 3634.2,
+        "sd": 55.18786098409686,
+        "median": 3635.0,
+        "min": 3565.0,
+        "max": 3704.0
+      },
+      "fitness_requests": {
+        "mean": 12800.0,
+        "sd": 0.0,
+        "median": 12800.0,
+        "min": 12800.0,
+        "max": 12800.0
+      }
+    }
+  },
+  "static": {
+    "edd": {
+      "vehicles": {
+        "mean": 11.0,
+        "sd": 6.741998624632421,
+        "median": 9.0,
+        "min": 3.0,
+        "max": 23.0
+      },
+      "distance": {
+        "mean": 2407.352039746377,
+        "sd": 869.5113356161185,
+        "median": 2464.530484889804,
+        "min": 842.5695850181307,
+        "max": 3693.274747117568
+      },
+      "runtime_ms": {
+        "mean": 10.470103083396983,
+        "sd": 1.8021989294559921,
+        "median": 10.37438549997205,
+        "min": 7.94682500009003,
+        "max": 13.50318699996933
+      }
+    },
+    "gp": {
+      "vehicles": {
+        "mean": 9.416666666666666,
+        "sd": 6.780559615589628,
+        "median": 8.0,
+        "min": 3.0,
+        "max": 25.0
+      },
+      "distance": {
+        "mean": 1561.1092240352175,
+        "sd": 593.9823939527588,
+        "median": 1605.0967024746942,
+        "min": 591.5565566715015,
+        "max": 2791.7560872789845
+      },
+      "runtime_ms": {
+        "mean": 8.73070348334295,
+        "sd": 52.645485144225134,
+        "median": 1.7434090002552693,
+        "min": 0.6820399999014626,
+        "max": 409.6482989998549
+      }
+    },
+    "gprt": {
+      "vehicles": {
+        "mean": 9.6,
+        "sd": 6.535950127395145,
+        "median": 8.0,
+        "min": 3.0,
+        "max": 24.0
+      },
+      "distance": {
+        "mean": 1521.9524451991283,
+        "sd": 572.6274242138059,
+        "median": 1538.0071705784321,
+        "min": 591.5565566715015,
+        "max": 2633.055182227389
+      },
+      "runtime_ms": {
+        "mean": 1.3193845499927193,
+        "sd": 0.923448108507998,
+        "median": 0.7278609998593311,
+        "min": 0.4726080001091759,
+        "max": 3.477705000022979
+      }
+    }
+  },
+  "static_pairs": {
+    "win": 26,
+    "loss": 30,
+    "tie": 4,
+    "exact": 4,
+    "jaccard": {
+      "mean": 0.390905185953649,
+      "sd": 0.3095036076102661,
+      "median": 0.28405181137421576,
+      "min": 0.0196078431372549,
+      "max": 1.0
+    },
+    "distance_wins": 30,
+    "distance_losses": 26
+  },
+  "seed_quality": [
+    {
+      "seed": "20260914",
+      "gp": {
+        "vehicles": 9.583333333333334,
+        "distance": 1845.6832764451515,
+        "dynamic_distance": 3759.8510017717217,
+        "dynamic_served": 91.94444444444444
+      },
+      "gprt": {
+        "vehicles": 9.5,
+        "distance": 1332.850620587728,
+        "dynamic_distance": 3496.450589813573,
+        "dynamic_served": 91.91666666666667
+      },
+      "lex_wlt": [
+        8,
+        4,
+        0
+      ]
+    },
+    {
+      "seed": "20260915",
+      "gp": {
+        "vehicles": 9.5,
+        "distance": 1572.6012912130213,
+        "dynamic_distance": 3715.247140017713,
+        "dynamic_served": 91.77777777777777
+      },
+      "gprt": {
+        "vehicles": 9.583333333333334,
+        "distance": 1529.062117112058,
+        "dynamic_distance": 3651.420678094892,
+        "dynamic_served": 91.75
+      },
+      "lex_wlt": [
+        5,
+        4,
+        3
+      ]
+    },
+    {
+      "seed": "20260916",
+      "gp": {
+        "vehicles": 9.583333333333334,
+        "distance": 1330.4310873160687,
+        "dynamic_distance": 3492.1437105269497,
+        "dynamic_served": 91.88888888888889
+      },
+      "gprt": {
+        "vehicles": 9.25,
+        "distance": 1421.16573432156,
+        "dynamic_distance": 3641.710863739226,
+        "dynamic_served": 91.75
+      },
+      "lex_wlt": [
+        7,
+        5,
+        0
+      ]
+    },
+    {
+      "seed": "20260917",
+      "gp": {
+        "vehicles": 9.083333333333334,
+        "distance": 1583.0146217118215,
+        "dynamic_distance": 3676.1478025198558,
+        "dynamic_served": 91.88888888888889
+      },
+      "gprt": {
+        "vehicles": 9.5,
+        "distance": 1401.9789915385297,
+        "dynamic_distance": 3503.522954158935,
+        "dynamic_served": 91.80555555555556
+      },
+      "lex_wlt": [
+        5,
+        6,
+        1
+      ]
+    },
+    {
+      "seed": "20260918",
+      "gp": {
+        "vehicles": 9.333333333333334,
+        "distance": 1473.8158434900245,
+        "dynamic_distance": 3671.4365402099997,
+        "dynamic_served": 91.80555555555556
+      },
+      "gprt": {
+        "vehicles": 10.166666666666666,
+        "distance": 1924.7047624357656,
+        "dynamic_distance": 3947.829840538182,
+        "dynamic_served": 91.75
+      },
+      "lex_wlt": [
+        1,
+        11,
+        0
+      ]
+    }
+  ],
+  "family_quality": {
+    "C1": {
+      "gp": {
+        "vehicles": 10.1,
+        "distance": 1103.636474286777
+      },
+      "gprt": {
+        "vehicles": 10.4,
+        "distance": 1117.675292447068
+      }
+    },
+    "C2": {
+      "gp": {
+        "vehicles": 3.1,
+        "distance": 679.067733282241
+      },
+      "gprt": {
+        "vehicles": 3.3,
+        "distance": 702.3083728079057
+      }
+    },
+    "R1": {
+      "gp": {
+        "vehicles": 18.6,
+        "distance": 2012.6888709754458
+      },
+      "gprt": {
+        "vehicles": 18.0,
+        "distance": 1865.9062513696895
+      }
+    },
+    "R2": {
+      "gp": {
+        "vehicles": 3.4,
+        "distance": 1598.793072046376
+      },
+      "gprt": {
+        "vehicles": 3.8,
+        "distance": 1583.1248598234347
+      }
+    },
+    "RC1": {
+      "gp": {
+        "vehicles": 17.2,
+        "distance": 2138.3645213173177
+      },
+      "gprt": {
+        "vehicles": 17.3,
+        "distance": 2127.264154777305
+      }
+    },
+    "RC2": {
+      "gp": {
+        "vehicles": 4.1,
+        "distance": 1834.1046723031475
+      },
+      "gprt": {
+        "vehicles": 4.8,
+        "distance": 1735.4357399693665
+      }
+    }
+  },
+  "within_method": {
+    "gp": {
+      "pairs": 120,
+      "exact": 6,
+      "jaccard": {
+        "mean": 0.3806960488519053,
+        "sd": 0.30972118816160465,
+        "median": 0.23434381237524948,
+        "min": 0.039603960396039604,
+        "max": 1.0
+      }
+    },
+    "gprt": {
+      "pairs": 120,
+      "exact": 3,
+      "jaccard": {
+        "mean": 0.3627848730288238,
+        "sd": 0.2956735394684484,
+        "median": 0.24109768628423625,
+        "min": 0.0196078431372549,
+        "max": 1.0
+      }
+    }
+  },
+  "heuristics": [
+    {
+      "method": "gp",
+      "seed": 20260914,
+      "expression": "sub(add(add(arrival_time, due_date), wait_time), if_else(if_else(add(wait_time, remaining_capacity), wait_time, ready_time), sub(due_date, pdiv(or(pdiv(slack, -1), and(ready_time, slack)), and(ready_time, add(route_load, slack)))), remaining_vehicles))",
+      "nodes": 29,
+      "depth": 6,
+      "features": [
+        "arrival_time",
+        "due_date",
+        "ready_time",
+        "remaining_capacity",
+        "remaining_vehicles",
+        "route_load",
+        "slack",
+        "wait_time"
+      ]
+    },
+    {
+      "method": "gp",
+      "seed": 20260915,
+      "expression": "add(arrival_time, pdiv(sub(wait_time, next_feasible_fraction), service_time))",
+      "nodes": 7,
+      "depth": 3,
+      "features": [
+        "arrival_time",
+        "next_feasible_fraction",
+        "service_time",
+        "wait_time"
+      ]
+    },
+    {
+      "method": "gp",
+      "seed": 20260916,
+      "expression": "add(pdiv(max(wait_time, route_load), ge(arrival_time, route_load)), add(max(wait_time, d_current), due_date))",
+      "nodes": 13,
+      "depth": 3,
+      "features": [
+        "arrival_time",
+        "d_current",
+        "due_date",
+        "route_load",
+        "wait_time"
+      ]
+    },
+    {
+      "method": "gp",
+      "seed": 20260917,
+      "expression": "add(sub(min(due_date, arrival_time), le(d_depot, and(sub(ge(ready_time, -1), wait_time), mul(demand, 2)))), mul(due_date, max(and(ge(min(due_date, wait_time), mul(demand, urgency_rank)), le(1, and(remaining_fraction, ready_time))), arrival_time)))",
+      "nodes": 33,
+      "depth": 6,
+      "features": [
+        "arrival_time",
+        "d_depot",
+        "demand",
+        "due_date",
+        "ready_time",
+        "remaining_fraction",
+        "urgency_rank",
+        "wait_time"
+      ]
+    },
+    {
+      "method": "gp",
+      "seed": 20260918,
+      "expression": "add(arrival_time, sub(wait_time, next_feasible_fraction))",
+      "nodes": 5,
+      "depth": 2,
+      "features": [
+        "arrival_time",
+        "next_feasible_fraction",
+        "wait_time"
+      ]
+    },
+    {
+      "method": "gprt",
+      "seed": 20260914,
+      "expression": "add(add(d_current, due_date), wait_time)",
+      "nodes": 5,
+      "depth": 2,
+      "features": [
+        "d_current",
+        "due_date",
+        "wait_time"
+      ]
+    },
+    {
+      "method": "gprt",
+      "seed": 20260915,
+      "expression": "sub(sub(arrival_time, next_feasible_fraction), next_feasible_fraction)",
+      "nodes": 5,
+      "depth": 2,
+      "features": [
+        "arrival_time",
+        "next_feasible_fraction"
+      ]
+    },
+    {
+      "method": "gprt",
+      "seed": 20260916,
+      "expression": "max(ready_time, arrival_time)",
+      "nodes": 3,
+      "depth": 1,
+      "features": [
+        "arrival_time",
+        "ready_time"
+      ]
+    },
+    {
+      "method": "gprt",
+      "seed": 20260917,
+      "expression": "add(wait_time, mul(d_current, due_date))",
+      "nodes": 5,
+      "depth": 2,
+      "features": [
+        "d_current",
+        "due_date",
+        "wait_time"
+      ]
+    },
+    {
+      "method": "gprt",
+      "seed": 20260918,
+      "expression": "sub(pdiv(le(sub(add(add(demand, d_depot), add(d_current, service_time)), min(le(0.5, ready_time), max(0, remaining_capacity))), demand), mul(if_else(add(0, min(current_time, remaining_fraction)), or(and(urgency_rank, remaining_capacity), and(service_time, service_time)), wait_time), le(sub(urgency_rank, slack), remaining_vehicles))), next_feasible_fraction)",
+      "nodes": 40,
+      "depth": 6,
+      "features": [
+        "current_time",
+        "d_current",
+        "d_depot",
+        "demand",
+        "next_feasible_fraction",
+        "ready_time",
+        "remaining_capacity",
+        "remaining_fraction",
+        "remaining_vehicles",
+        "service_time",
+        "slack",
+        "urgency_rank",
+        "wait_time"
+      ]
+    }
+  ],
+  "learning": [
+    {
+      "seed": "20260914",
+      "first8": {
+        "neural_unique_samples": 21.0,
+        "entropy": 2.468880146741867,
+        "neural_direct_survival_rate": 0.03515625,
+        "neural_better_than_random_rate": 0.796875,
+        "neural_direct_elite_count": 0.375
+      },
+      "last8": {
+        "neural_unique_samples": 12.375,
+        "entropy": 2.0502238869667053,
+        "neural_direct_survival_rate": 0.041015625,
+        "neural_better_than_random_rate": 0.92578125,
+        "neural_direct_elite_count": 0.625
+      }
+    },
+    {
+      "seed": "20260915",
+      "first8": {
+        "neural_unique_samples": 23.25,
+        "entropy": 2.490645259618759,
+        "neural_direct_survival_rate": 0.072265625,
+        "neural_better_than_random_rate": 0.8359375,
+        "neural_direct_elite_count": 0.875
+      },
+      "last8": {
+        "neural_unique_samples": 7.5,
+        "entropy": 1.873132362961769,
+        "neural_direct_survival_rate": 0.03125,
+        "neural_better_than_random_rate": 0.96484375,
+        "neural_direct_elite_count": 0.125
+      }
+    },
+    {
+      "seed": "20260916",
+      "first8": {
+        "neural_unique_samples": 20.125,
+        "entropy": 2.422886848449707,
+        "neural_direct_survival_rate": 0.060546875,
+        "neural_better_than_random_rate": 0.86328125,
+        "neural_direct_elite_count": 0.625
+      },
+      "last8": {
+        "neural_unique_samples": 6.75,
+        "entropy": 1.8018792122602463,
+        "neural_direct_survival_rate": 0.03125,
+        "neural_better_than_random_rate": 0.9765625,
+        "neural_direct_elite_count": 1.0
+      }
+    },
+    {
+      "seed": "20260917",
+      "first8": {
+        "neural_unique_samples": 20.0,
+        "entropy": 2.438301533460617,
+        "neural_direct_survival_rate": 0.064453125,
+        "neural_better_than_random_rate": 0.87109375,
+        "neural_direct_elite_count": 0.75
+      },
+      "last8": {
+        "neural_unique_samples": 7.5,
+        "entropy": 1.8898914158344269,
+        "neural_direct_survival_rate": 0.0234375,
+        "neural_better_than_random_rate": 0.96875,
+        "neural_direct_elite_count": 0.625
+      }
+    },
+    {
+      "seed": "20260918",
+      "first8": {
+        "neural_unique_samples": 23.0,
+        "entropy": 2.4469499588012695,
+        "neural_direct_survival_rate": 0.064453125,
+        "neural_better_than_random_rate": 0.83203125,
+        "neural_direct_elite_count": 0.75
+      },
+      "last8": {
+        "neural_unique_samples": 8.0,
+        "entropy": 1.82452891767025,
+        "neural_direct_survival_rate": 0.02734375,
+        "neural_better_than_random_rate": 0.95703125,
+        "neural_direct_elite_count": 0.25
+      }
+    }
+  ],
+  "dynamic": {
+    "static": {
+      "edd": {
+        "served": 100.0,
+        "unserved": 0.0,
+        "cancelled": 0.0,
+        "served_rate": 1.0,
+        "distance": 2407.3520397463776,
+        "distance_per_served": 24.073520397463774,
+        "vehicles_used": 11.0,
+        "trip_count": 11.0,
+        "callback_latency_p95_ms": 17.698208583283304,
+        "wall_clock_seconds": 0.05424794350005868,
+        "violation_count": 0.0,
+        "late_served": 0.0,
+        "infeasible_orders": 0.0
+      },
+      "gp": {
+        "served": 100.0,
+        "unserved": 0.0,
+        "cancelled": 0.0,
+        "served_rate": 1.0,
+        "distance": 1561.1092240352177,
+        "distance_per_served": 15.611092240352178,
+        "vehicles_used": 9.416666666666666,
+        "trip_count": 9.416666666666666,
+        "callback_latency_p95_ms": 62.607700216676676,
+        "wall_clock_seconds": 0.09487101566664932,
+        "violation_count": 0.0,
+        "late_served": 0.0,
+        "infeasible_orders": 0.0
+      },
+      "gprt": {
+        "served": 100.0,
+        "unserved": 0.0,
+        "cancelled": 0.0,
+        "served_rate": 1.0,
+        "distance": 1521.9524451991288,
+        "distance_per_served": 15.219524451991287,
+        "vehicles_used": 9.6,
+        "trip_count": 9.6,
+        "callback_latency_p95_ms": 59.550522999961686,
+        "wall_clock_seconds": 0.102180454116683,
+        "violation_count": 0.0,
+        "late_served": 0.0,
+        "infeasible_orders": 0.0
+      }
+    },
+    "dynamic": {
+      "edd": {
+        "served": 91.86111111111111,
+        "unserved": 7.861111111111111,
+        "cancelled": 0.2777777777777778,
+        "served_rate": 0.9207378776426396,
+        "distance": 4123.225119152499,
+        "distance_per_served": 44.31933711579464,
+        "vehicles_used": 17.194444444444443,
+        "trip_count": 51.138888888888886,
+        "callback_latency_p95_ms": 4.631517420846699,
+        "wall_clock_seconds": 0.2670933698332571,
+        "violation_count": 0.0,
+        "late_served": 0.0,
+        "infeasible_orders": 5.416666666666667
+      },
+      "gp": {
+        "served": 91.86111111111111,
+        "unserved": 7.888888888888889,
+        "cancelled": 0.25,
+        "served_rate": 0.9204738656405324,
+        "distance": 3662.965239009248,
+        "distance_per_served": 39.64305856297386,
+        "vehicles_used": 16.716666666666665,
+        "trip_count": 50.49444444444445,
+        "callback_latency_p95_ms": 4.8364864594455215,
+        "wall_clock_seconds": 0.25945868576110975,
+        "violation_count": 0.0,
+        "late_served": 0.0,
+        "infeasible_orders": 5.416666666666667
+      },
+      "gprt": {
+        "served": 91.79444444444445,
+        "unserved": 7.955555555555556,
+        "cancelled": 0.25,
+        "served_rate": 0.9197993311802836,
+        "distance": 3648.186985268962,
+        "distance_per_served": 39.45459700963536,
+        "vehicles_used": 16.883333333333333,
+        "trip_count": 50.66111111111111,
+        "callback_latency_p95_ms": 4.895014815286156,
+        "wall_clock_seconds": 0.28354454425000314,
+        "violation_count": 0.0,
+        "late_served": 0.0,
+        "infeasible_orders": 5.416666666666667
+      }
+    }
+  },
+  "dynamic_pairs": {
+    "count": 180,
+    "served_wins": 10,
+    "served_losses": 18,
+    "served_ties": 152,
+    "same_workload": 146,
+    "distance_delta_equal_workload": {
+      "mean": -10.936145845698649,
+      "sd": 293.6720375652723,
+      "median": -58.71950963680331,
+      "min": -567.952105477083,
+      "max": 996.4849878759228
+    },
+    "distance_wins_equal_workload": 93,
+    "distance_losses_equal_workload": 51
+  }
+}

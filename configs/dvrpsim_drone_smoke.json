@@ -1,0 +1,20 @@
+{
+  "d_model": 16,
+  "nhead": 2,
+  "num_layers": 1,
+  "dim_feedforward": 32,
+  "max_tokens": 9,
+  "max_depth": 2,
+  "population_size": 8,
+  "transformer_samples": 4,
+  "tournament_size": 3,
+  "elite_count": 1,
+  "gp_generations": 1,
+  "cycles": 1,
+  "batch_size_instances": 2,
+  "validation_interval": 1,
+  "validation_candidates": 2,
+  "screening_train_size": 2,
+  "elite_screening_candidates": 2,
+  "require_full_train_coverage": false
+}

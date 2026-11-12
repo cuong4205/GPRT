@@ -1,12 +1,18 @@
 # GPRT-VRPTW
 
+## Benchmark động xe tải–drone
+
+Luồng mới dùng các CSV trong `data/Dataset_DVRPTW_drone_GP_RNN` để huấn luyện GP và
+GPRT trực tiếp bằng episode DVRPSim. Validation chọn biểu thức và test nạp lại biểu
+thức đó để điều khiển cùng bộ dựng tuyến. Xem [cách chạy và quy tắc mô phỏng](docs/DVRPSIM_DRONE_VI.md).
+
+## Chạy luồng Solomon
+
 Project triển khai GPRT đầy đủ trên 56 instance Solomon VRPTW. Transformer sinh biểu thức heuristic, GP tiến hóa quần thể, REINFORCE học từ mẫu neural on-policy, và elite imitation truyền tín hiệu từ các cây GP đã sàng lọc.
 
 Runner hiện có hai chế độ: GPRT đầy đủ (mặc định) và GP thuần. Archive seeding là tùy chọn cấu hình của GPRT. Các mô hình standalone và các ablation cũ đã được gỡ khỏi luồng chạy.
 
 Hướng dẫn: [chạy thí nghiệm](docs/RUN_GPRT_VRPTW.md), [GP và GPRT](docs/GPRT_MODELS_AND_VARIANTS_VI.md), [tài liệu kỹ thuật](docs/GPRT_PROJECT_TECHNICAL_DOCUMENTATION_VI.md), [kế hoạch đánh giá động với dvrpsim](docs/DVRPSIM_DYNAMIC_VRPTW_PLAN_VI.md). Các [báo cáo pilot](docs/GPRT_VRPTW_REPORT_VI.md) được giữ làm tư liệu lịch sử.
-
-## Chạy
 
 Luồng đầy đủ **GP + GPRT 32 cycle → khóa heuristic text → validation động đủ 12
 instance → test tĩnh → test mô phỏng động**:
@@ -82,6 +88,10 @@ Môi trường `.venv` đã được chuẩn bị cho lần tích hợp này; c�
 `.venv/Scripts/python.exe` thay cho `python`.
 
 ## Cấu trúc
+
+Báo cáo mới: [Kết quả end-to-end GP/GPRT 32 cycle](docs/END_TO_END_32CYCLE_RESULTS_VI.md)
+phân tích đợt `end_to_end_32cycle/run_01`, gồm hiệu năng, chất lượng nghiệm và so sánh heuristic.
+Kế hoạch tiếp theo: [Cải tiến GPRT sau 32 cycle](docs/GPRT_POST_32CYCLE_IMPROVEMENT_PLAN_VI.md).
 
 - `gprt_vrptw/`: GPRT, GP, Transformer, grammar, evaluator và archive selection.
 - `vrptw_baselines/`: loader Solomon, bộ dựng tuyến và kiểm tra khả thi dùng chung.

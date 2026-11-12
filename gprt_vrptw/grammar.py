@@ -31,6 +31,13 @@ LOOKAHEAD_FEATURES = (
     "urgency_rank",
 )
 FEATURES = CORE_FEATURES + LOOKAHEAD_FEATURES
+DRONE_FEATURES = (
+    "slack", "trip_duration", "remaining_capacity", "demand", "current_time",
+    "order_age", "extra_truck_km", "extra_drone_km", "rendezvous_wait",
+    "endurance_margin", "is_drone", "is_new_trip",
+    "extra_duration", "extra_cost", "service_wait", "min_route_slack",
+    "service_delay",
+)
 ARITY = {
     "add": 2,
     "sub": 2,
@@ -58,7 +65,7 @@ def tree_depth(tree: Tree) -> int:
 
 def tree_to_prefix(tree: Tree) -> list[str]:
     if isinstance(tree, str):
-        if tree not in FEATURES:
+        if tree not in FEATURES and tree not in DRONE_FEATURES:
             raise ValueError(f"Unknown terminal: {tree}")
         return [tree]
     if isinstance(tree, (int, float)):
@@ -80,7 +87,7 @@ def prefix_to_tree(tokens: list[str] | tuple[str, ...]) -> Tree:
         if index >= len(tokens):
             raise ValueError("Incomplete prefix expression")
         token = tokens[index]
-        if token in FEATURES:
+        if token in FEATURES or token in DRONE_FEATURES:
             return token, index + 1
         if token in CONSTANT_TOKENS:
             return float(token), index + 1
@@ -186,10 +193,10 @@ class GrammarState:
 
 
 class Grammar:
-    def __init__(self, max_tokens: int = 63, max_depth: int = 6):
+    def __init__(self, max_tokens: int = 63, max_depth: int = 6, *, features=FEATURES):
         self.max_tokens = max_tokens
         self.max_depth = max_depth
-        self.features = FEATURES
+        self.features = features
         self.vocab = SPECIAL + CONSTANT_TOKENS + self.features + tuple(ARITY)
         self.token_to_id = {token: index for index, token in enumerate(self.vocab)}
         self.id_to_token = dict(enumerate(self.vocab))

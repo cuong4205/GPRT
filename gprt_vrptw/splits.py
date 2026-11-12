@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import hashlib
 import random
+import re
 from collections import defaultdict
 
 from vrptw_baselines.data import VRPTWInstance
 
 
 def family(name: str) -> str:
+    match = re.match(r"h\d+(rc|c|r)([12])", name, re.IGNORECASE)
+    if match:
+        return f"{match[1].upper()}{match[2]}"
     stem = name.lower().split("_")[0]
     letters = "".join(c for c in stem if c.isalpha())
     digits = "".join(c for c in stem if c.isdigit())

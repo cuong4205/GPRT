@@ -310,27 +310,30 @@ _COMPILE_GLOBALS = {
     "_and": _and, "_or": _or, "_if_else": _if_else,
 }
 _FEATURE_INDEX = {name: index for index, name in enumerate(FEATURES)}
-_COMPILED_CACHE: dict[str, Any] = {}
+_COMPILED_CACHE: dict[tuple[str, tuple[str, ...]], Any] = {}
 
 
-def _tree_source(tree: Tree) -> str:
+def _tree_source(tree: Tree, feature_index: dict[str, int]) -> str:
     if isinstance(tree, str):
-        return f"f[{_FEATURE_INDEX[tree]}]"
+        return f"f[{feature_index[tree]}]"
     if isinstance(tree, (int, float)):
         return repr(float(tree))
     op = str(tree[0])
-    return f"_{op}({', '.join(_tree_source(child) for child in tree[1:])})"
+    return f"_{op}({', '.join(_tree_source(child, feature_index) for child in tree[1:])})"
 
 
-def compile_tree(tree: Tree):
+def compile_tree(tree: Tree, features: tuple[str, ...] = FEATURES):
     """Compile a grammar-validated tree to fast, still-protected Python bytecode."""
-    expression = tree_to_string(tree)
-    if expression not in _COMPILED_CACHE:
-        _COMPILED_CACHE[expression] = eval(
-            f"lambda f: _bounded({_tree_source(tree)})",
+    key = (tree_to_string(tree), features)
+    if key not in _COMPILED_CACHE:
+        feature_index = _FEATURE_INDEX if features == FEATURES else {
+            name: index for index, name in enumerate(features)
+        }
+        _COMPILED_CACHE[key] = eval(
+            f"lambda f: _bounded({_tree_source(tree, feature_index)})",
             {"__builtins__": {}, "_bounded": _bounded, **_COMPILE_GLOBALS},
         )
-    return _COMPILED_CACHE[expression]
+    return _COMPILED_CACHE[key]
 
 
 class _LazyFeatureVector:

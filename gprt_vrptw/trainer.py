@@ -23,7 +23,7 @@ from .evaluator import (
     rank_rewards,
 )
 from .gp import evolve_population
-from .grammar import Grammar, Tree, tree_depth, tree_size, tree_to_string
+from .grammar import Grammar, Tree, tree_depth, tree_size, tree_to_prefix, tree_to_string
 from .selection import record_observation, screen_archive, select_archive_seeds
 from .splits import stratified_batches, stratified_sample
 from .transformer import CausalTransformer
@@ -126,14 +126,20 @@ def _behaviorally_diverse_elites(
 
 
 class GPRTTrainer:
-    def __init__(self, config: GPRTConfig, *, device: str = "cpu"):
+    def __init__(self, config: GPRTConfig, *, device: str = "cpu", evaluator=None,
+                 grammar: Grammar | None = None, initial_trees: tuple[Tree, ...] = ()):
         config.validate()
         self.config = config
-        self.grammar = Grammar(config.max_tokens, config.max_depth)
+        self.grammar = grammar if grammar is not None else Grammar(config.max_tokens, config.max_depth)
+        self.initial_trees = initial_trees
+        if len(initial_trees) + config.archive_seed_count > config.population_size - config.transformer_samples:
+            raise ValueError("Initial and archive seeds must fit the non-neural population slots")
+        if any(not self.grammar.validate_expression(tree_to_prefix(tree)) for tree in initial_trees):
+            raise ValueError("Initial tree is outside the configured grammar")
         self.device = torch.device(device)
         self.model = CausalTransformer(self.grammar, config).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate)
-        self.evaluator = FitnessEvaluator(config.complexity_penalty)
+        self.evaluator = evaluator if evaluator is not None else FitnessEvaluator(config.complexity_penalty)
         self.baseline: float | None = None
         self.archive: dict[str, dict[str, Any]] = {}
         self.logs: list[dict[str, Any]] = []
@@ -174,6 +180,7 @@ class GPRTTrainer:
             "optimizer": self.optimizer.state_dict(),
             "config": self.config.to_dict(),
             "vocabulary": list(self.grammar.vocab),
+            "initial_trees": self.initial_trees,
             "grammar": {
                 "max_tokens": self.grammar.max_tokens,
                 "max_depth": self.grammar.max_depth,
@@ -209,6 +216,10 @@ class GPRTTrainer:
             raise ValueError("Resume config differs from checkpoint config")
         if state["vocabulary"] != list(self.grammar.vocab):
             raise ValueError("Checkpoint vocabulary differs from current grammar")
+        if state.get("initial_trees", ()) != self.initial_trees:
+            raise ValueError("Checkpoint initial trees differ from the current run")
+        if state["routing_runtime"] != self.evaluator.runtime_info:
+            raise ValueError("Checkpoint evaluator protocol differs from the current run")
         self.model.load_state_dict(state["model"])
         self.optimizer.load_state_dict(state["optimizer"])
         self.archive = state["archive"]
@@ -294,7 +305,7 @@ class GPRTTrainer:
                 self.config.archive_seed_count,
                 excluded_expressions=neural_expressions,
             )
-            seeds = neural_seed_trees + archive_seed_trees
+            seeds = neural_seed_trees + archive_seed_trees + list(self.initial_trees)
             random_seed_trees: list[Tree] = []
             while len(seeds) < self.config.population_size:
                 tree = self.grammar.random_tree(self.rng, grow=len(seeds) % 2 == 0)

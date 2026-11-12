@@ -1,5 +1,10 @@
 # Luồng end-to-end: huấn luyện GP/GPRT 32 cycle → đánh giá tĩnh → mô phỏng động
 
+**Cập nhật 01/11/2026:** Đã có đợt chạy hoàn tất tại `end_to_end_32cycle/run_01`.
+Xem [báo cáo kết quả 32 cycle](END_TO_END_32CYCLE_RESULTS_VI.md) về chi phí chạy,
+chất lượng nghiệm và khác biệt heuristic GP/GPRT. Phần dưới giữ mô tả protocol
+được chốt trước khi chạy.
+
 Ngày chốt: **29/10/2026**. Đây là protocol và script cho **đợt chạy mới**;
 không phải báo cáo rằng ma trận 32 cycle đã chạy xong. Số liệu 4 cycle trong
 `outputs/gprt_vrptw/reduced_main` vẫn là kết quả lịch sử.
