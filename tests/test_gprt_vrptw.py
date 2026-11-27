@@ -176,6 +176,24 @@ class TransformerTests(unittest.TestCase):
             recomputed = self.model.teacher_forced([sample.tree])[0][0]
         self.assertTrue(torch.allclose(sample.log_probability, recomputed, atol=1e-6, rtol=0))
 
+    def test_guided_sampling_scores_only_the_sampled_suffix(self) -> None:
+        prefix = tuple(self.grammar.token_to_id[token] for token in ("sub", "d_current"))
+        state = self.grammar.initial_state()
+        history = [self.grammar.bos_id]
+        with torch.no_grad():
+            sample = self.model.generate(1, greedy=True, prefixes=[prefix])[0]
+            prefix_log_probability = 0.0
+            for token_id in prefix:
+                valid_ids = self.grammar.valid_token_ids(state)
+                logits = self.model(torch.tensor([history]))[0, -1, valid_ids]
+                prefix_log_probability += logits.log_softmax(dim=0)[valid_ids.index(token_id)]
+                self.grammar.step(state, self.grammar.id_to_token[token_id])
+                history.append(token_id)
+            full_log_probability = self.model.teacher_forced([sample.tree])[0][0]
+        self.assertEqual(sample.token_ids[:len(prefix)], prefix)
+        self.assertTrue(torch.allclose(sample.log_probability + prefix_log_probability,
+                                       full_log_probability, atol=1e-6, rtol=0))
+
     def test_reinforce_toy_update_moves_probability(self) -> None:
         optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
         good, bad = "d_current", "d_depot"
@@ -188,6 +206,33 @@ class TransformerTests(unittest.TestCase):
             optimizer.step()
         after = self.model.teacher_forced([good, bad])[0].detach()
         self.assertGreater(float(after[0] - after[1]), float(before[0] - before[1]))
+
+    def test_additive_guidance_keeps_parent_and_scores_the_feature_choice(self) -> None:
+        self.config.guided_mode = "additive_feature"
+        self.config.guided_samples = 1
+        parent = ("add", "d_current", "wait_time")
+        trainer = GPRTTrainer(self.config, grammar=self.grammar, initial_trees=(parent,))
+        feature_ids = [self.grammar.token_to_id[name] for name in self.grammar.features]
+        for cycle, op in enumerate(("add", "sub"), start=1):
+            prefixes = trainer._guided_prefixes(cycle)
+            self.assertEqual(prefixes[1], ())
+            sample, free = self.model.generate(2, prefixes=prefixes)
+            self.assertEqual(sample.tree[:2], (op, parent))
+            self.assertIn(sample.tree[2], self.grammar.features)
+            inputs = torch.tensor([[self.grammar.bos_id, *prefixes[0]]])
+            logits = self.model(inputs)[0, -1, feature_ids] / self.config.temperature
+            expected = logits.log_softmax(0)[self.grammar.features.index(sample.tree[2])]
+            torch.testing.assert_close(sample.log_probability, expected)
+            torch.testing.assert_close(free.log_probability, self.model.teacher_forced([free.tree])[0][0])
+
+    def test_additive_guidance_falls_back_when_parent_fills_grammar(self) -> None:
+        self.config.max_tokens = 3
+        self.config.max_depth = 1
+        self.config.guided_mode = "additive_feature"
+        self.config.guided_samples = 1
+        full = ("sub", "d_current", "wait_time")
+        trainer = GPRTTrainer(self.config, initial_trees=(full,))
+        self.assertIsNone(trainer._guided_prefixes(1))
 
 
 class ProtocolTests(unittest.TestCase):

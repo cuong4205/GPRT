@@ -42,6 +42,9 @@ class GPRTConfig:
     elite_fraction: float = 0.10
     baseline_decay: float = 0.9
     advantage_mode: str = "batch_standardize"
+    imitation_warmup_steps: int = 0
+    guided_samples: int = 0
+    guided_mode: str = "complete_prefix"
 
     # Fixed full-GPRT feature-v2 protocol.
     require_full_train_coverage: bool = True
@@ -66,6 +69,12 @@ class GPRTConfig:
             raise ValueError("screening, validation, batch, and probe sizes must be positive")
         if self.archive_seed_count < 0:
             raise ValueError("archive_seed_count cannot be negative")
+        if self.imitation_warmup_steps < 0:
+            raise ValueError("imitation_warmup_steps cannot be negative")
+        if not 0 <= self.guided_samples <= self.transformer_samples:
+            raise ValueError("guided_samples must fit the Transformer sample budget")
+        if self.guided_mode not in {"complete_prefix", "additive_feature"}:
+            raise ValueError("guided_mode must be complete_prefix or additive_feature")
         random_seed_slots = self.population_size - self.transformer_samples
         if self.archive_seed_count > random_seed_slots:
             raise ValueError("archive seeds must replace random seeds, not increase the population")

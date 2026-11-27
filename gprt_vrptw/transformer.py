@@ -66,12 +66,15 @@ class CausalTransformer(nn.Module):
         *,
         temperature: float | None = None,
         greedy: bool = False,
+        prefixes: list[tuple[int, ...]] | None = None,
     ) -> list[GeneratedExpression]:
         if count < 1:
             return []
         temperature = self.config.temperature if temperature is None else temperature
         if temperature <= 0:
             raise ValueError("temperature must be positive")
+        if prefixes is not None and len(prefixes) != count:
+            raise ValueError("Each sample needs one prefix (possibly empty)")
         device = next(self.parameters()).device
         sequences: list[list[int]] = [[self.grammar.bos_id] for _ in range(count)]
         expression_ids: list[list[int]] = [[] for _ in range(count)]
@@ -80,7 +83,7 @@ class CausalTransformer(nn.Module):
         log_probs: list[list[Tensor]] = [[] for _ in range(count)]
         entropies: list[list[Tensor]] = [[] for _ in range(count)]
 
-        for _ in range(self.config.max_tokens + 1):
+        for position in range(self.config.max_tokens + 1):
             if not any(active):
                 break
             ids = torch.tensor(sequences, dtype=torch.long, device=device)
@@ -91,6 +94,23 @@ class CausalTransformer(nn.Module):
                     sequences[row].append(self.grammar.pad_id)
                     continue
                 valid_ids = self.grammar.valid_token_ids(states[row])
+                if prefixes is not None and position < len(prefixes[row]):
+                    token_id = prefixes[row][position]
+                    if token_id == self.grammar.eos_id or token_id not in valid_ids:
+                        raise ValueError("Guided prefixes must contain valid expression tokens")
+                    self.grammar.step(states[row], self.grammar.id_to_token[token_id])
+                    if states[row].complete:
+                        raise ValueError("Guided prefixes must leave a subtree to sample")
+                    sequences[row].append(token_id)
+                    expression_ids[row].append(token_id)
+                    continue
+                if (self.config.guided_mode == "additive_feature" and prefixes
+                        and prefixes[row] and position == len(prefixes[row])):
+                    # A constant only shifts every insertion score equally.
+                    valid_ids = [token_id for token_id in valid_ids
+                                 if self.grammar.id_to_token[token_id] in self.grammar.features]
+                    if not valid_ids:
+                        raise ValueError("The guided correction needs a valid feature token")
                 mask = torch.full_like(logits[row], float("-inf"))
                 mask[valid_ids] = 0.0
                 distribution = torch.distributions.Categorical(logits=logits[row] + mask)
@@ -133,7 +153,7 @@ class CausalTransformer(nn.Module):
         *,
         temperature: float | None = None,
     ) -> tuple[Tensor, Tensor, Tensor]:
-        """Return likelihood under the same temperature-scaled policy as sampling."""
+        """Score complete trees under the unconditional, grammar-masked policy."""
         if not trees:
             zero = self.output.weight.sum() * 0.0
             return zero.unsqueeze(0)[:0], zero, zero

@@ -136,6 +136,8 @@ class GPRTTrainer:
             raise ValueError("Initial and archive seeds must fit the non-neural population slots")
         if any(not self.grammar.validate_expression(tree_to_prefix(tree)) for tree in initial_trees):
             raise ValueError("Initial tree is outside the configured grammar")
+        if config.imitation_warmup_steps and not initial_trees:
+            raise ValueError("Imitation warmup requires initial trees")
         self.device = torch.device(device)
         self.model = CausalTransformer(self.grammar, config).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate)
@@ -212,7 +214,13 @@ class GPRTTrainer:
 
     def load_checkpoint(self, path: Path) -> int:
         state = torch.load(path, map_location=self.device, weights_only=False)
-        if state["config"] != self.config.to_dict():
+        checkpoint_config = {
+            "imitation_warmup_steps": 0,
+            "guided_samples": 0,
+            "guided_mode": "complete_prefix",
+            **state["config"],
+        }
+        if checkpoint_config != self.config.to_dict():
             raise ValueError("Resume config differs from checkpoint config")
         if state["vocabulary"] != list(self.grammar.vocab):
             raise ValueError("Checkpoint vocabulary differs from current grammar")
@@ -259,6 +267,12 @@ class GPRTTrainer:
             self.model = CausalTransformer(self.grammar, self.config).to(self.device)
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.config.learning_rate)
             self.rng.seed(seed)
+            for _ in range(self.config.imitation_warmup_steps):
+                self.optimizer.zero_grad(set_to_none=True)
+                _, loss, _ = self.model.teacher_forced(list(self.initial_trees))
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.gradient_clip)
+                self.optimizer.step()
         else:
             checkpoint_seed = self.load_checkpoint(resume)
             if checkpoint_seed != seed:
@@ -291,7 +305,11 @@ class GPRTTrainer:
             self.seen_training_instances.update(instance.name.lower() for instance in batch)
             self.model.train()
             transformer_started = time.perf_counter()
-            samples = self.model.generate(self.config.transformer_samples, greedy=False)
+            if self.config.guided_samples:
+                prefixes = self._guided_prefixes(cycle)
+                samples = self.model.generate(self.config.transformer_samples, prefixes=prefixes)
+            else:
+                samples = self.model.generate(self.config.transformer_samples, greedy=False)
             transformer_sample_seconds = time.perf_counter() - transformer_started
             on_policy_trees = [sample.tree for sample in samples]
 
@@ -327,6 +345,7 @@ class GPRTTrainer:
 
             # Only current-policy samples define the REINFORCE rank pool. GP
             # individuals are off-policy and cannot move a neural sample's reward.
+            # For guided rows, the policy samples the suffix under a fixed prefix.
             all_rewards = rank_rewards(initial_fitness)
             rewards = torch.tensor(
                 all_rewards[: len(samples)], dtype=torch.float32, device=self.device
@@ -516,6 +535,40 @@ class GPRTTrainer:
             validation_instance_names=tuple(i.name.lower() for i in validation_instances),
         )
 
+    def _guided_prefixes(self, cycle: int) -> list[tuple[int, ...]] | None:
+        screened = sorted(
+            (entry for entry in self.archive.values() if entry["screening_fitness"] is not None),
+            key=lambda entry: (entry["screening_fitness"], tree_to_string(entry["tree"])),
+        )
+        archive_guides = screened[:self.config.elite_screening_candidates]
+        guides = [*self.initial_trees, *(entry["tree"] for entry in archive_guides)]
+        if self.config.guided_mode == "additive_feature":
+            if not self.grammar.features:
+                return None
+            # Leave exactly one feature to sample after an intact parent. Both
+            # orientations are legal and use the existing grammar and tree budget.
+            cuts = dict.fromkeys(
+                (self.grammar.token_to_id[op], *self.grammar.encode_expression(tree, include_special=False))
+                for tree in dict.fromkeys(guides)
+                if tree_depth(tree) < self.grammar.max_depth
+                and tree_size(tree) + 2 <= self.grammar.max_tokens
+                for op in ("add", "sub")
+            )
+        else:
+            cuts = dict.fromkeys(
+                tuple(self.grammar.encode_expression(tree, include_special=False)[:-1])
+                for tree in guides if isinstance(tree, tuple)
+            )
+        if not cuts:
+            return None
+        candidates = list(cuts)
+        guided = self.config.guided_samples
+        offset = (cycle - 1) * guided
+        return [
+            *(candidates[(offset + index) % len(candidates)] for index in range(guided)),
+            *([()] * (self.config.transformer_samples - guided)),
+        ]
+
     def _write_outputs(self, output_dir: Path, seed: int, split_manifest: dict[str, str]) -> None:
         (output_dir / "config.json").write_text(
             json.dumps(self.config.to_dict(), indent=2), encoding="utf-8"
@@ -562,6 +615,7 @@ class GPRTTrainer:
                 self.logs[-1]["training_coverage"] if self.logs else 0.0
             ),
             "gradient_steps": self.completed_cycles,
+            "imitation_warmup_steps": self.config.imitation_warmup_steps,
         }
         (output_dir / "training_summary.json").write_text(
             json.dumps(summary, indent=2), encoding="utf-8"

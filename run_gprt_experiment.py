@@ -18,7 +18,7 @@ from vrptw_baselines.data import VRPTWInstance, discover_instances
 from gprt_vrptw.config import GPRTConfig
 from gprt_vrptw.evaluator import Fitness, FitnessEvaluator, distance_scale, routing_runtime_info
 from gprt_vrptw.gp import evolve_population
-from gprt_vrptw.grammar import Grammar, Tree, tree_to_string
+from gprt_vrptw.grammar import Grammar, Tree, prefix_to_tree, tree_to_string
 from gprt_vrptw.selection import record_observation, screen_archive, select_archive_seeds
 from gprt_vrptw.splits import family, split_solomon, stratified_batches, stratified_sample
 from gprt_vrptw.trainer import GPRTTrainer
@@ -327,9 +327,6 @@ def main() -> None:
         raise SystemExit("A screening run uses at most two seeds")
     if archive_seed_count < 0:
         raise SystemExit("--archive-seed-count cannot be negative")
-    if archive_seed_count and "gprt" not in methods:
-        raise SystemExit("archive seeding applies only when method 'gprt' is selected")
-
     instances = discover_instances(data_dir)
     if len(instances) != 56 or any(instance.source != "Solomon" for instance in instances):
         raise SystemExit("Expected exactly 56 Solomon instances and no Gehring-Homberger data")
@@ -339,6 +336,14 @@ def main() -> None:
     test = [i for i in instances if split[i.name.lower()] == "test"]
     config = GPRTConfig(**config_values)
     config.validate()
+    initial_rule_tokens = preset.get("initial_rule_tokens", [])
+    grammar = Grammar(config.max_tokens, config.max_depth)
+    if not isinstance(initial_rule_tokens, list) or not all(
+        isinstance(tokens, list) and grammar.validate_expression(tokens)
+        for tokens in initial_rule_tokens
+    ):
+        raise ValueError("initial_rule_tokens must contain valid Solomon prefix expressions")
+    initial_trees = tuple(prefix_to_tree(tokens) for tokens in initial_rule_tokens)
     output_dir.mkdir(parents=True, exist_ok=True)
     raw_rows: list[dict[str, Any]] = []
     searches: list[dict[str, Any]] = []
@@ -351,7 +356,9 @@ def main() -> None:
             memory_sampler = MemorySampler()
             memory_sampler.start()
             if method == "gp":
-                tree, validation_fitness, search = run_gp_baseline(train, validation, config, seed)
+                tree, validation_fitness, search = run_gp_baseline(
+                    train, validation, config, seed, initial_trees=initial_trees
+                )
                 (run_dir / "final_heuristic.txt").write_text(tree_to_string(tree) + "\n", encoding="utf-8")
                 (run_dir / "config.json").write_text(json.dumps(config.to_dict(), indent=2), encoding="utf-8")
                 (run_dir / "split_manifest.json").write_text(json.dumps(split, indent=2, sort_keys=True), encoding="utf-8")
@@ -365,7 +372,7 @@ def main() -> None:
                     "best_expression": tree_to_string(tree),
                 }, indent=2), encoding="utf-8")
             else:
-                trainer = GPRTTrainer(config, device=device)
+                trainer = GPRTTrainer(config, device=device, initial_trees=initial_trees)
                 search_started = time.perf_counter()
                 result = trainer.train(
                     train,
@@ -413,6 +420,7 @@ def main() -> None:
             "seeds": seeds,
             "screening_run": screening_run,
             "config": config.to_dict(),
+            "initial_rule_tokens": initial_rule_tokens,
             "methods": methods,
             "routing_runtime": routing_runtime,
         },

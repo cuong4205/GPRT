@@ -1,8 +1,8 @@
 # Kết quả thí nghiệm end-to-end GP và GPRT: 32 cycle
 
-Kế hoạch tiếp theo: [cải tiến GPRT sau 32 cycle](GPRT_POST_32CYCLE_IMPROVEMENT_PLAN_VI.md).
+**Lưu ý truy xuất:** workspace hiện không có `end_to_end_32cycle/run_01` và bộ Solomon ở đường dẫn mặc định. Các số và kiểm tra hash bên dưới là ghi nhận tại thời điểm phân tích, chưa thể xác minh lại từ artifact gốc trong workspace hiện tại.
 
-Ngày phân tích: **01/11/2026**. Nguồn: [`end_to_end_32cycle/run_01`](../end_to_end_32cycle/run_01). Đợt chạy được ghi nhận ngày **30/10/2026, giờ Việt Nam/Thái Lan** (manifest lưu UTC ngày 29/10). Tài liệu này báo cáo kết quả đã chạy, bổ sung cho [protocol end-to-end](END_TO_END_GPRT_GP_VI.md).
+Ngày phân tích: **01/11/2026**. Nguồn: `end_to_end_32cycle/run_01`. Đợt chạy được ghi nhận ngày **30/10/2026, giờ Việt Nam/Thái Lan** (manifest lưu UTC ngày 29/10). Tài liệu này báo cáo kết quả đã chạy, bổ sung cho [hướng dẫn hiện hành](RUN_GPRT_VRPTW.md).
 
 ## 1. Kết luận chính
 
@@ -48,7 +48,7 @@ Benchmark tĩnh giới hạn một tuyến/xe. Simulator cho phép xe về depot
 - Gate test tĩnh đạt: **132 dòng, 0 lỗi**.
 - Validator simulator validation đạt **396 episode**; test đạt **528 episode**; không có failure, không ghi nhận source thay đổi tại lần kiểm tra đã lưu.
 - Các episode test simulator ghi **0 vi phạm**, gồm tải, cửa sổ thời gian và các kiểm tra khác; không khách đã phục vụ nào bị trễ.
-- Phân tích này kiểm tra lại SHA-256 của **62 artifact** được liệt kê trong các stage: **61 khớp**, gồm dữ liệu kết quả, log kiểm tra và cả 10 heuristic. Riêng [`end_to_end_report.md`](../end_to_end_32cycle/run_01/end_to_end_report.md) **không khớp hash trong manifest**. Chưa xác định nguyên nhân; không dùng file Markdown này làm nguồn tính số liệu. Giữ nguyên file và manifest để bảo toàn dấu vết.
+- Phân tích này kiểm tra lại SHA-256 của **62 artifact** được liệt kê trong các stage: **61 khớp**, gồm dữ liệu kết quả, log kiểm tra và cả 10 heuristic. Riêng `end_to_end_report.md` **không khớp hash trong manifest**. Chưa xác định nguyên nhân; không dùng file Markdown này làm nguồn tính số liệu. Giữ nguyên file và manifest để bảo toàn dấu vết.
 
 Việc kiểm hash xác nhận các artifact kết quả hiện tại khớp bản ghi đã lưu, không thay thế một lần chạy lại mô phỏng độc lập. Tài liệu này đọc lại dữ liệu, đối chiếu summary và tính thêm các phép so sánh; không huấn luyện lại và không thay đổi heuristic.
 
@@ -254,11 +254,11 @@ Kết luận có thể dùng trong báo cáo: **Pipeline GPRT hoàn tất 32 cyc
 
 | Nội dung | Nguồn |
 |---|---|
-| Stage, cấu hình, hash | [`pipeline_manifest.json`](../end_to_end_32cycle/run_01/pipeline_manifest.json), [`training_config.json`](../end_to_end_32cycle/run_01/training_config.json) |
-| Biểu thức và hash | [`heuristics_manifest.json`](../end_to_end_32cycle/run_01/heuristics_manifest.json) và 10 file `final_heuristic.txt` |
-| Chi phí offline | [`search_metrics.csv`](../end_to_end_32cycle/run_01/training/search_metrics.csv), summary từng seed |
-| Nghiệm tĩnh và runtime | [`test_results.csv`](../end_to_end_32cycle/run_01/static_test/test_results.csv) |
-| Episode động/tĩnh đối chứng | [`episodes.csv`](../end_to_end_32cycle/run_01/dynamic/final/episodes.csv) |
+| Stage, cấu hình, hash | `pipeline_manifest.json`, `training_config.json` |
+| Biểu thức và hash | `heuristics_manifest.json` và 10 file `final_heuristic.txt` |
+| Chi phí offline | `search_metrics.csv`, summary từng seed |
+| Nghiệm tĩnh và runtime | `test_results.csv` |
+| Episode động/tĩnh đối chứng | `episodes.csv` |
 | Kiểm tra hợp lệ | `training/validation_report.json`, `static_test/gate_report.json`, `dynamic/{pilot,final}/{gate_report,validation_report}.json` trong thư mục run |
 | Thống kê bổ sung, cây và learning curve | [`summary.json`](analysis/end_to_end_32cycle/summary.json) |
 | Từng cặp test tĩnh | [`paired_static.csv`](analysis/end_to_end_32cycle/paired_static.csv) |

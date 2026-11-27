@@ -107,9 +107,9 @@ def ready_departure(instance: DroneInstance, settings: Settings, plan: Plan, now
     return now + min(waits, default=0.0)
 
 
-def insertions(plan: Plan, cid: int, drone_allowed: bool, limit: int):
-    # Inspect the last available gaps; all policies see the same candidates.
-    for index in range(len(plan.sorties) - 1, max(-1, len(plan.sorties) - limit - 1), -1):
+def insertions(plan: Plan, cid: int, drone_allowed: bool, limit: int, *, skip: int = 0):
+    first = len(plan.sorties) - skip - 1
+    for index in range(first, max(-1, first - limit), -1):
         sortie = plan.sorties[index]
         stops = plan.stops[:index + 1] + (cid,) + plan.stops[index + 1:]
         before, after = plan.sorties[:index], plan.sorties[index + 1:]

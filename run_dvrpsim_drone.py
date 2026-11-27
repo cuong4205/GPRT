@@ -14,12 +14,25 @@ from dvrpsim_drone.evaluator import DynamicEvaluator
 from dvrpsim_drone.simulator import SIMULATOR_VERSION, DispatchConfig, run_episode
 from gprt_vrptw.config import GPRTConfig
 from gprt_vrptw.grammar import DRONE_FEATURES, Grammar, prefix_to_tree, tree_to_prefix, tree_to_string
+from gprt_vrptw.splits import stratified_sample
 from gprt_vrptw.trainer import GPRTTrainer
 from run_gprt_experiment import run_gp_baseline
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data" / "Dataset_DVRPTW_drone_GP_RNN"
 INITIAL_TREES = ("trip_duration", "extra_duration", "extra_cost", "service_delay")
+RULE_POOL = INITIAL_TREES + (
+    ("sub", "extra_cost", "min_route_slack"),
+    ("sub", "extra_cost", ("mul", 0.5, "min_route_slack")),
+    ("sub", "extra_cost", ("mul", 2.0, "min_route_slack")),
+    ("sub", "extra_duration", "min_route_slack"),
+    ("sub", "extra_duration", ("mul", 0.5, "min_route_slack")),
+    ("sub", "extra_duration", ("mul", 2.0, "min_route_slack")),
+    ("add", "trip_duration", "extra_truck_km"),
+    ("add", "extra_cost", "extra_duration"),
+    ("add", "extra_cost", "service_wait"),
+    "extra_truck_km", "slack",
+)
 
 
 def write_json(path, data):
@@ -70,6 +83,10 @@ def main():
     parser.add_argument("--transfer", action="store_true")
     parser.add_argument("--depart-after-hold", action="store_true",
                         help="Depart after the hold even when the first customers are not ready")
+    parser.add_argument("--retry-earlier-gaps", action="store_true",
+                        help="Try earlier insertion positions when the usual positions all fail")
+    parser.add_argument("--screen-initial-rules", action="store_true",
+                        help="Seed both methods with rules selected on training instances")
     parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--resume", action="store_true", help="Continue GPRT from last.pt")
     args = parser.parse_args()
@@ -90,7 +107,8 @@ def main():
     settings = Settings.read(args.data / "dvrptw-setting.txt")
     dispatch = DispatchConfig(hold_minutes=args.hold_minutes, drone_enabled=not args.truck_only,
                               drone_cost_ratio=args.drone_cost_ratio,
-                              wait_at_depot=not args.depart_after_hold)
+                              wait_at_depot=not args.depart_after_hold,
+                              retry_earlier_gaps=args.retry_earlier_gaps)
     instances = load_dataset(args.data, settings, args.fleet)
     split = layout_split(instances, args.fold)
     manifest = {
@@ -101,6 +119,10 @@ def main():
         "instances": {i.name: {"sha256": i.sha256, "layout": i.layout, "split": split[i.name]}
                       for i in instances},
     }
+    if not dispatch.retry_earlier_gaps:
+        del manifest["dispatch"]["retry_earlier_gaps"]
+    if args.screen_initial_rules:
+        manifest["initial_rule_pool"] = [tree_to_prefix(tree) for tree in RULE_POOL]
     if args.stage == "inspect":
         print(json.dumps(Counter(split.values()), sort_keys=True))
         return
@@ -118,6 +140,25 @@ def main():
         config.validate()
         train = [item for item in instances if split[item.name] == "train"]
         validation = [item for item in instances if split[item.name] == "validation"]
+        initial_trees = INITIAL_TREES
+        rule_screening = None
+        if args.screen_initial_rules:
+            evaluator = DynamicEvaluator(settings, dispatch, config.complexity_penalty)
+            grammar = Grammar(config.max_tokens, config.max_depth, features=DRONE_FEATURES)
+            screen = stratified_sample(train, config.screening_train_size)
+            ranked = sorted(
+                (evaluator.fitness(tree, screen, phase="screening"), tree_to_string(tree), tree)
+                for tree in RULE_POOL if grammar.validate_expression(tree_to_prefix(tree))
+            )
+            initial_trees = tuple(tree for _, _, tree in ranked[:len(INITIAL_TREES)])
+            rule_screening = asdict(evaluator.stats)
+            write_json(output / "initial_rule_screening.json", {
+                "instances": [item.name for item in screen],
+                "rules": [{"expression": name, "fitness": fitness._asdict()}
+                          for fitness, name, _ in ranked],
+                "selected": [tree_to_prefix(tree) for tree in initial_trees],
+                "evaluation": rule_screening,
+            })
         for seed in args.seeds:
             for method in args.methods:
                 folder = output / method / str(seed)
@@ -131,10 +172,10 @@ def main():
                 if method == "gp":
                     tree, fitness, _ = run_gp_baseline(train, validation, config, seed,
                                                        evaluator=evaluator, grammar=grammar,
-                                                       initial_trees=INITIAL_TREES, progress=True)
+                                                       initial_trees=initial_trees, progress=True)
                 else:
                     trainer = GPRTTrainer(config, evaluator=evaluator, grammar=grammar,
-                                          initial_trees=INITIAL_TREES)
+                                          initial_trees=initial_trees)
                     result = trainer.train(train, validation, seed=seed, output_dir=folder,
                                            split_manifest=split, resume=resume)
                     tree, fitness = result.best_tree, result.best_validation_fitness
@@ -145,6 +186,7 @@ def main():
                     "protocol": identity(manifest), "method": method, "seed": seed,
                     "tokens": tree_to_prefix(tree), "validation_fitness": fitness._asdict(),
                     "training": asdict(evaluator.stats), "config": config.to_dict(),
+                    "initial_rule_screening": rule_screening,
                 })
         return
 

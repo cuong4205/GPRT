@@ -1,0 +1,953 @@
+{
+  "drone": [
+    {
+      "fold": 0,
+      "validation_customers_per_seed": 1600,
+      "test_customers_per_seed": 900,
+      "fixed_baselines_once": {
+        "edd": {
+          "on_time": 899,
+          "weighted_km": 29242.65346152898
+        },
+        "greedy": {
+          "on_time": 889,
+          "weighted_km": 21516.76950548702
+        },
+        "trip_duration": {
+          "on_time": 880,
+          "weighted_km": 25668.227878410224
+        }
+      },
+      "protocol": "eadc04006750fe82c2cc4b74bddf46e00844472de69a7b8534c95f204a53e5f3",
+      "runs": [
+        {
+          "arm": "gp",
+          "seed": 42,
+          "tokens": [
+            "sub",
+            "extra_duration",
+            "min_route_slack"
+          ],
+          "validation_on_time": 1333,
+          "validation_km": 33452.73206428983,
+          "test_on_time": 896,
+          "test_weighted_km": 25244.507221643413,
+          "train_requests": 1302,
+          "train_simulations": 766,
+          "total_simulations": 1064,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "prefix",
+          "seed": 42,
+          "tokens": [
+            "sub",
+            "extra_duration",
+            "min_route_slack"
+          ],
+          "validation_on_time": 1333,
+          "validation_km": 33452.73206428983,
+          "test_on_time": 896,
+          "test_weighted_km": 25244.507221643413,
+          "train_requests": 1302,
+          "train_simulations": 604,
+          "total_simulations": 1016,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "additive",
+          "seed": 42,
+          "tokens": [
+            "add",
+            "sub",
+            "extra_duration",
+            "min_route_slack",
+            "trip_duration"
+          ],
+          "validation_on_time": 1339,
+          "validation_km": 33533.2823556432,
+          "test_on_time": 896,
+          "test_weighted_km": 25244.507221643413,
+          "train_requests": 1302,
+          "train_simulations": 596,
+          "total_simulations": 1042,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "gp",
+          "seed": 43,
+          "tokens": [
+            "sub",
+            "extra_cost",
+            "min_route_slack"
+          ],
+          "validation_on_time": 1338,
+          "validation_km": 30229.08685623271,
+          "test_on_time": 884,
+          "test_weighted_km": 21135.314317576005,
+          "train_requests": 1302,
+          "train_simulations": 791,
+          "total_simulations": 1099,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "prefix",
+          "seed": 43,
+          "tokens": [
+            "sub",
+            "sub",
+            "extra_duration",
+            "min_route_slack",
+            "is_new_trip"
+          ],
+          "validation_on_time": 1345,
+          "validation_km": 33298.68212883891,
+          "test_on_time": 897,
+          "test_weighted_km": 25448.204018093773,
+          "train_requests": 1302,
+          "train_simulations": 598,
+          "total_simulations": 1009,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "additive",
+          "seed": 43,
+          "tokens": [
+            "sub",
+            "sub",
+            "extra_duration",
+            "min_route_slack",
+            "is_new_trip"
+          ],
+          "validation_on_time": 1345,
+          "validation_km": 33298.68212883891,
+          "test_on_time": 897,
+          "test_weighted_km": 25448.204018093773,
+          "train_requests": 1302,
+          "train_simulations": 603,
+          "total_simulations": 1048,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "gp",
+          "seed": 44,
+          "tokens": [
+            "sub",
+            "extra_duration",
+            "min_route_slack"
+          ],
+          "validation_on_time": 1333,
+          "validation_km": 33452.73206428983,
+          "test_on_time": 896,
+          "test_weighted_km": 25244.507221643413,
+          "train_requests": 1302,
+          "train_simulations": 785,
+          "total_simulations": 1094,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "prefix",
+          "seed": 44,
+          "tokens": [
+            "sub",
+            "extra_duration",
+            "min_route_slack"
+          ],
+          "validation_on_time": 1333,
+          "validation_km": 33452.73206428983,
+          "test_on_time": 896,
+          "test_weighted_km": 25244.507221643413,
+          "train_requests": 1302,
+          "train_simulations": 596,
+          "total_simulations": 1005,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "additive",
+          "seed": 44,
+          "tokens": [
+            "sub",
+            "add",
+            "extra_cost",
+            "sub",
+            "extra_duration",
+            "min_route_slack",
+            "extra_cost"
+          ],
+          "validation_on_time": 1334,
+          "validation_km": 33468.168526530266,
+          "test_on_time": 896,
+          "test_weighted_km": 25244.507221643413,
+          "train_requests": 1302,
+          "train_simulations": 601,
+          "total_simulations": 1063,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "gp",
+          "seed": 45,
+          "tokens": [
+            "sub",
+            "extra_duration",
+            "min_route_slack"
+          ],
+          "validation_on_time": 1333,
+          "validation_km": 33452.73206428983,
+          "test_on_time": 896,
+          "test_weighted_km": 25244.507221643413,
+          "train_requests": 1302,
+          "train_simulations": 794,
+          "total_simulations": 1135,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "prefix",
+          "seed": 45,
+          "tokens": [
+            "sub",
+            "sub",
+            "add",
+            "extra_cost",
+            "extra_duration",
+            "min_route_slack",
+            "min_route_slack"
+          ],
+          "validation_on_time": 1337,
+          "validation_km": 32100.38156747478,
+          "test_on_time": 898,
+          "test_weighted_km": 24432.928969851862,
+          "train_requests": 1302,
+          "train_simulations": 621,
+          "total_simulations": 1067,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "additive",
+          "seed": 45,
+          "tokens": [
+            "add",
+            "sub",
+            "extra_duration",
+            "min_route_slack",
+            "extra_truck_km"
+          ],
+          "validation_on_time": 1338,
+          "validation_km": 33356.52801962281,
+          "test_on_time": 896,
+          "test_weighted_km": 25203.334113797617,
+          "train_requests": 1302,
+          "train_simulations": 618,
+          "total_simulations": 1051,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "gp",
+          "seed": 46,
+          "tokens": [
+            "sub",
+            "extra_duration",
+            "min_route_slack"
+          ],
+          "validation_on_time": 1333,
+          "validation_km": 33452.73206428983,
+          "test_on_time": 896,
+          "test_weighted_km": 25244.507221643413,
+          "train_requests": 1302,
+          "train_simulations": 745,
+          "total_simulations": 1023,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "prefix",
+          "seed": 46,
+          "tokens": [
+            "sub",
+            "extra_duration",
+            "min_route_slack"
+          ],
+          "validation_on_time": 1333,
+          "validation_km": 33452.73206428983,
+          "test_on_time": 896,
+          "test_weighted_km": 25244.507221643413,
+          "train_requests": 1302,
+          "train_simulations": 590,
+          "total_simulations": 969,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "additive",
+          "seed": 46,
+          "tokens": [
+            "sub",
+            "sub",
+            "extra_duration",
+            "min_route_slack",
+            "remaining_capacity"
+          ],
+          "validation_on_time": 1334,
+          "validation_km": 33622.95799040707,
+          "test_on_time": 896,
+          "test_weighted_km": 25281.538301653374,
+          "train_requests": 1302,
+          "train_simulations": 599,
+          "total_simulations": 1031,
+          "prescreen_simulations": 90
+        }
+      ],
+      "on_time_delta_percentage_points": {
+        "gp": {
+          "mean": 0.28888888888888886,
+          "percentiles_2_5_and_97_5": [
+            0.0,
+            1.2
+          ]
+        },
+        "prefix": {
+          "mean": -0.044444444444444446,
+          "percentiles_2_5_and_97_5": [
+            -0.3333333333333333,
+            0.08888888888888889
+          ]
+        }
+      },
+      "paired": {
+        "gp": {
+          "wins": 7,
+          "ties": 33,
+          "losses": 5
+        },
+        "prefix": {
+          "wins": 3,
+          "ties": 35,
+          "losses": 7
+        }
+      }
+    },
+    {
+      "fold": 2,
+      "validation_customers_per_seed": 800,
+      "test_customers_per_seed": 2300,
+      "fixed_baselines_once": {
+        "edd": {
+          "on_time": 1787,
+          "weighted_km": 44519.63792205441
+        },
+        "greedy": {
+          "on_time": 1909,
+          "weighted_km": 34314.44818423991
+        },
+        "trip_duration": {
+          "on_time": 1912,
+          "weighted_km": 38500.91287701831
+        }
+      },
+      "protocol": "bfc169307455c7d3a3dfbf04d62c07bf8acc19fd7391c5d0a7de200db469da67",
+      "runs": [
+        {
+          "arm": "gp",
+          "seed": 42,
+          "tokens": [
+            "sub",
+            "extra_cost",
+            "sub",
+            "slack",
+            "mul",
+            "sub",
+            "order_age",
+            "rendezvous_wait",
+            "min",
+            "service_wait",
+            "min_route_slack"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21294.237517718575,
+          "test_on_time": 1922,
+          "test_weighted_km": 33513.81560176619,
+          "train_requests": 1218,
+          "train_simulations": 709,
+          "total_simulations": 938,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "prefix",
+          "seed": 42,
+          "tokens": [
+            "extra_cost"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21585.68053967405,
+          "test_on_time": 1909,
+          "test_weighted_km": 34314.44818423991,
+          "train_requests": 1218,
+          "train_simulations": 559,
+          "total_simulations": 875,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "additive",
+          "seed": 42,
+          "tokens": [
+            "add",
+            "sub",
+            "pdiv",
+            "mul",
+            "extra_drone_km",
+            "endurance_margin",
+            "le",
+            "slack",
+            "extra_truck_km",
+            "add",
+            "mul",
+            "extra_truck_km",
+            "-1",
+            "ge",
+            "remaining_capacity",
+            "rendezvous_wait",
+            "min",
+            "extra_drone_km",
+            "service_delay"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 20930.112350721734,
+          "test_on_time": 1905,
+          "test_weighted_km": 34090.04986998619,
+          "train_requests": 1218,
+          "train_simulations": 525,
+          "total_simulations": 840,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "gp",
+          "seed": 43,
+          "tokens": [
+            "extra_cost"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21585.68053967405,
+          "test_on_time": 1909,
+          "test_weighted_km": 34314.44818423991,
+          "train_requests": 1218,
+          "train_simulations": 731,
+          "total_simulations": 923,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "prefix",
+          "seed": 43,
+          "tokens": [
+            "extra_cost"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21585.68053967405,
+          "test_on_time": 1909,
+          "test_weighted_km": 34314.44818423991,
+          "train_requests": 1218,
+          "train_simulations": 592,
+          "total_simulations": 877,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "additive",
+          "seed": 43,
+          "tokens": [
+            "sub",
+            "extra_cost",
+            "slack"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21561.41383417513,
+          "test_on_time": 1923,
+          "test_weighted_km": 32915.558534948344,
+          "train_requests": 1218,
+          "train_simulations": 578,
+          "total_simulations": 885,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "gp",
+          "seed": 44,
+          "tokens": [
+            "max",
+            "mul",
+            "add",
+            "if_else",
+            "0.5",
+            "is_drone",
+            "slack",
+            "or",
+            "extra_drone_km",
+            "min_route_slack",
+            "le",
+            "add",
+            "-0.5",
+            "remaining_capacity",
+            "min",
+            "current_time",
+            "extra_duration",
+            "extra_truck_km"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 22190.937108222144,
+          "test_on_time": 1931,
+          "test_weighted_km": 34467.159471783685,
+          "train_requests": 1218,
+          "train_simulations": 724,
+          "total_simulations": 967,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "prefix",
+          "seed": 44,
+          "tokens": [
+            "extra_cost"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21585.68053967405,
+          "test_on_time": 1909,
+          "test_weighted_km": 34314.44818423991,
+          "train_requests": 1218,
+          "train_simulations": 559,
+          "total_simulations": 862,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "additive",
+          "seed": 44,
+          "tokens": [
+            "extra_cost"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21585.68053967405,
+          "test_on_time": 1909,
+          "test_weighted_km": 34314.44818423991,
+          "train_requests": 1218,
+          "train_simulations": 547,
+          "total_simulations": 834,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "gp",
+          "seed": 45,
+          "tokens": [
+            "extra_cost"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21585.68053967405,
+          "test_on_time": 1909,
+          "test_weighted_km": 34314.44818423991,
+          "train_requests": 1218,
+          "train_simulations": 729,
+          "total_simulations": 947,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "prefix",
+          "seed": 45,
+          "tokens": [
+            "extra_cost"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21585.68053967405,
+          "test_on_time": 1909,
+          "test_weighted_km": 34314.44818423991,
+          "train_requests": 1218,
+          "train_simulations": 562,
+          "total_simulations": 911,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "additive",
+          "seed": 45,
+          "tokens": [
+            "extra_cost"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21585.68053967405,
+          "test_on_time": 1909,
+          "test_weighted_km": 34314.44818423991,
+          "train_requests": 1218,
+          "train_simulations": 548,
+          "total_simulations": 880,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "gp",
+          "seed": 46,
+          "tokens": [
+            "extra_cost"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21585.68053967405,
+          "test_on_time": 1909,
+          "test_weighted_km": 34314.44818423991,
+          "train_requests": 1218,
+          "train_simulations": 734,
+          "total_simulations": 943,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "prefix",
+          "seed": 46,
+          "tokens": [
+            "extra_cost"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21585.68053967405,
+          "test_on_time": 1909,
+          "test_weighted_km": 34314.44818423991,
+          "train_requests": 1218,
+          "train_simulations": 547,
+          "total_simulations": 851,
+          "prescreen_simulations": 90
+        },
+        {
+          "arm": "additive",
+          "seed": 46,
+          "tokens": [
+            "sub",
+            "add",
+            "extra_cost",
+            "service_wait",
+            "service_wait"
+          ],
+          "validation_on_time": 800,
+          "validation_km": 21335.773759305393,
+          "test_on_time": 1908,
+          "test_weighted_km": 34444.51616536373,
+          "train_requests": 1218,
+          "train_simulations": 565,
+          "total_simulations": 855,
+          "prescreen_simulations": 90
+        }
+      ],
+      "on_time_delta_percentage_points": {
+        "gp": {
+          "mean": -0.22608695652173913,
+          "percentiles_2_5_and_97_5": [
+            -0.9391304347826087,
+            0.41760869565217074
+          ]
+        },
+        "prefix": {
+          "mean": 0.0782608695652174,
+          "percentiles_2_5_and_97_5": [
+            -0.3652173913043478,
+            0.6608695652173913
+          ]
+        }
+      },
+      "paired": {
+        "gp": {
+          "wins": 36,
+          "ties": 33,
+          "losses": 46
+        },
+        "prefix": {
+          "wins": 26,
+          "ties": 56,
+          "losses": 33
+        }
+      }
+    }
+  ],
+  "solomon": {
+    "test_instances_per_seed": 12,
+    "runs": [
+      {
+        "arm": "gp",
+        "seed": 20260914,
+        "expression": "add(add(add(add(d_current, wait_time), slack), wait_time), wait_time)",
+        "validation_fitness": [
+          0,
+          0.0,
+          7.833333333333333,
+          0.24114130132235012,
+          0.0009000000000000001
+        ],
+        "test_total_vehicles": 109,
+        "test_total_distance": 16444.759342193443,
+        "train_requests": 9216,
+        "train_evaluations": 5035,
+        "search_seconds": 13.891538099999707
+      },
+      {
+        "arm": "gp",
+        "seed": 20260915,
+        "expression": "sub(sub(add(wait_time, arrival_time), next_feasible_fraction), next_feasible_fraction)",
+        "validation_fitness": [
+          0,
+          0.0,
+          8.0,
+          0.2888401033796341,
+          0.0007
+        ],
+        "test_total_vehicles": 112,
+        "test_total_distance": 18170.373571219312,
+        "train_requests": 9216,
+        "train_evaluations": 4886,
+        "search_seconds": 12.51821960000052
+      },
+      {
+        "arm": "gp",
+        "seed": 20260916,
+        "expression": "add(add(arrival_time, add(arrival_time, wait_time)), add(add(arrival_time, wait_time), add(arrival_time, due_date)))",
+        "validation_fitness": [
+          0,
+          0.0,
+          7.833333333333333,
+          0.27591375647077293,
+          0.0013000000000000002
+        ],
+        "test_total_vehicles": 105,
+        "test_total_distance": 17405.101579255963,
+        "train_requests": 9216,
+        "train_evaluations": 5035,
+        "search_seconds": 15.635785899999973
+      },
+      {
+        "arm": "gp",
+        "seed": 20260917,
+        "expression": "sub(sub(arrival_time, next_feasible_fraction), next_feasible_fraction)",
+        "validation_fitness": [
+          0,
+          0.0,
+          8.5,
+          0.28038284506086447,
+          0.0005
+        ],
+        "test_total_vehicles": 115,
+        "test_total_distance": 18348.745405344696,
+        "train_requests": 9216,
+        "train_evaluations": 4896,
+        "search_seconds": 15.834509599999365
+      },
+      {
+        "arm": "gp",
+        "seed": 20260918,
+        "expression": "sub(sub(add(wait_time, arrival_time), next_feasible_fraction), next_feasible_fraction)",
+        "validation_fitness": [
+          0,
+          0.0,
+          8.0,
+          0.2888401033796341,
+          0.0007
+        ],
+        "test_total_vehicles": 112,
+        "test_total_distance": 18170.373571219312,
+        "train_requests": 9216,
+        "train_evaluations": 4968,
+        "search_seconds": 16.311269199999515
+      },
+      {
+        "arm": "prefix",
+        "seed": 20260914,
+        "expression": "add(add(add(add(d_current, wait_time), add(d_current, urgency_rank)), wait_time), wait_time)",
+        "validation_fitness": [
+          0,
+          0.0,
+          8.0,
+          0.23244356703047217,
+          0.0011
+        ],
+        "test_total_vehicles": 113,
+        "test_total_distance": 16071.412491476129,
+        "train_requests": 9216,
+        "train_evaluations": 4194,
+        "search_seconds": 63.0568559000003
+      },
+      {
+        "arm": "prefix",
+        "seed": 20260915,
+        "expression": "sub(sub(arrival_time, next_feasible_fraction), next_feasible_fraction)",
+        "validation_fitness": [
+          0,
+          0.0,
+          8.5,
+          0.28038284506086447,
+          0.0005
+        ],
+        "test_total_vehicles": 115,
+        "test_total_distance": 18348.745405344696,
+        "train_requests": 9216,
+        "train_evaluations": 4015,
+        "search_seconds": 97.99766510000063
+      },
+      {
+        "arm": "prefix",
+        "seed": 20260916,
+        "expression": "add(sub(add(d_current, wait_time), next_feasible_fraction), add(sub(add(arrival_time, wait_time), next_feasible_fraction), due_date))",
+        "validation_fitness": [
+          0,
+          0.0,
+          7.916666666666667,
+          0.24306669286400895,
+          0.0013000000000000002
+        ],
+        "test_total_vehicles": 110,
+        "test_total_distance": 16411.649115357504,
+        "train_requests": 9216,
+        "train_evaluations": 4170,
+        "search_seconds": 66.45291910000014
+      },
+      {
+        "arm": "prefix",
+        "seed": 20260917,
+        "expression": "add(sub(slack, next_feasible_fraction), mul(d_current, remaining_vehicles))",
+        "validation_fitness": [
+          0,
+          0.0,
+          8.666666666666666,
+          0.24854902008251287,
+          0.0007
+        ],
+        "test_total_vehicles": 112,
+        "test_total_distance": 16480.121836297254,
+        "train_requests": 9216,
+        "train_evaluations": 3935,
+        "search_seconds": 54.16387020000002
+      },
+      {
+        "arm": "prefix",
+        "seed": 20260918,
+        "expression": "add(arrival_time, add(wait_time, sub(max(route_load, arrival_time), next_feasible_fraction)))",
+        "validation_fitness": [
+          0,
+          0.0,
+          8.25,
+          0.26894094801494095,
+          0.0009000000000000001
+        ],
+        "test_total_vehicles": 111,
+        "test_total_distance": 17459.471734337567,
+        "train_requests": 9216,
+        "train_evaluations": 4330,
+        "search_seconds": 61.89707289999933
+      },
+      {
+        "arm": "additive",
+        "seed": 20260914,
+        "expression": "add(sub(add(add(d_current, wait_time), wait_time), next_feasible_fraction), due_date)",
+        "validation_fitness": [
+          0,
+          0.0,
+          8.0,
+          0.24331393514351332,
+          0.0009000000000000001
+        ],
+        "test_total_vehicles": 108,
+        "test_total_distance": 16205.263852652326,
+        "train_requests": 9216,
+        "train_evaluations": 4303,
+        "search_seconds": 66.8543193000005
+      },
+      {
+        "arm": "additive",
+        "seed": 20260915,
+        "expression": "add(sub(sub(add(d_current, wait_time), next_feasible_fraction), next_feasible_fraction), add(due_date, wait_time))",
+        "validation_fitness": [
+          0,
+          0.0,
+          7.916666666666667,
+          0.246242835403938,
+          0.0011
+        ],
+        "test_total_vehicles": 109,
+        "test_total_distance": 16195.794376707223,
+        "train_requests": 9216,
+        "train_evaluations": 4310,
+        "search_seconds": 101.52213819999997
+      },
+      {
+        "arm": "additive",
+        "seed": 20260916,
+        "expression": "add(add(add(add(d_current, wait_time), 1), sub(sub(due_date, next_feasible_fraction), next_feasible_fraction)), wait_time)",
+        "validation_fitness": [
+          0,
+          0.0,
+          7.916666666666667,
+          0.246242835403938,
+          0.0013000000000000002
+        ],
+        "test_total_vehicles": 109,
+        "test_total_distance": 16195.794376707223,
+        "train_requests": 9216,
+        "train_evaluations": 4350,
+        "search_seconds": 64.3152141999999
+      },
+      {
+        "arm": "additive",
+        "seed": 20260917,
+        "expression": "sub(sub(add(add(d_current, wait_time), add(due_date, wait_time)), next_feasible_fraction), next_feasible_fraction)",
+        "validation_fitness": [
+          0,
+          0.0,
+          7.916666666666667,
+          0.246242835403938,
+          0.0011
+        ],
+        "test_total_vehicles": 109,
+        "test_total_distance": 16195.794376707223,
+        "train_requests": 9216,
+        "train_evaluations": 4125,
+        "search_seconds": 53.804672299999766
+      },
+      {
+        "arm": "additive",
+        "seed": 20260918,
+        "expression": "add(sub(sub(wait_time, and(remaining_vehicles, service_time)), route_load), add(sub(sub(wait_time, next_feasible_fraction), route_load), arrival_time))",
+        "validation_fitness": [
+          0,
+          0.0,
+          8.25,
+          0.28061858989534233,
+          0.0015
+        ],
+        "test_total_vehicles": 113,
+        "test_total_distance": 17975.24012898994,
+        "train_requests": 9216,
+        "train_evaluations": 4289,
+        "search_seconds": 56.84820099999979
+      }
+    ],
+    "fixed_baselines_once": {
+      "edd": {
+        "total_vehicles": 132,
+        "total_distance": 28888.224476956526,
+        "unserved": 0
+      },
+      "greedy": {
+        "total_vehicles": 193,
+        "total_distance": 22062.370382357025,
+        "unserved": 30
+      }
+    },
+    "vehicles_delta_per_instance": {
+      "gp": {
+        "mean": -0.08333333333333333,
+        "percentiles_2_5_and_97_5": [
+          -0.5166666666666667,
+          0.3333333333333333
+        ]
+      },
+      "prefix": {
+        "mean": -0.21666666666666667,
+        "percentiles_2_5_and_97_5": [
+          -0.5833333333333334,
+          0.13333333333333333
+        ]
+      }
+    },
+    "paired": {
+      "gp": {
+        "wins": 32,
+        "ties": 8,
+        "losses": 20
+      },
+      "prefix": {
+        "wins": 31,
+        "ties": 15,
+        "losses": 14
+      }
+    }
+  }
+}

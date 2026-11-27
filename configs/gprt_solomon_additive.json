@@ -1,0 +1,30 @@
+{
+  "methods": ["gp", "gprt"],
+  "output_dir": "outputs/gprt_vrptw/solomon_additive",
+  "seeds": [20260914, 20260915, 20260916, 20260917, 20260918],
+  "d_model": 32,
+  "nhead": 4,
+  "num_layers": 1,
+  "dim_feedforward": 64,
+  "max_tokens": 31,
+  "max_depth": 4,
+  "population_size": 16,
+  "transformer_samples": 8,
+  "gp_generations": 2,
+  "cycles": 32,
+  "batch_size_instances": 4,
+  "validation_interval": 4,
+  "validation_candidates": 12,
+  "screening_train_size": 8,
+  "elite_screening_candidates": 4,
+  "archive_seed_count": 2,
+  "guided_samples": 4,
+  "guided_mode": "additive_feature",
+  "imitation_warmup_steps": 16,
+  "initial_rule_tokens": [
+    ["d_current"],
+    ["due_date"],
+    ["add", "d_current", "wait_time"],
+    ["sub", "0", "next_feasible_fraction"]
+  ]
+}

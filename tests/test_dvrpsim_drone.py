@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 from dvrpsim_drone.data import Settings, load_instance
 from dvrpsim_drone.evaluator import DynamicEvaluator
@@ -40,6 +41,15 @@ def test_release_at_departure_is_considered_first(tmp_path):
     )
 
 
+def test_earlier_gap_recovers_order_when_the_last_gap_is_infeasible(tmp_path):
+    data = instance(tmp_path, "20,0,0.5,0,25,1,0,0\n1,0,0.5,0,26,1,0,0\n", fleet=1)
+    original = run_episode(data, SETTINGS, DispatchConfig(hold_minutes=0, gaps=1), None)
+    revised = run_episode(data, SETTINGS,
+                          DispatchConfig(hold_minutes=0, gaps=1, retry_earlier_gaps=True), None)
+    assert original.delivered == 1
+    assert revised.delivered == 2
+
+
 def test_drone_timeline_and_reloaded_policy_match_training(tmp_path):
     data = instance(tmp_path, "4,0,1,0,40,5,1,0\n", fleet=1)
     dispatch = DispatchConfig()
@@ -78,7 +88,6 @@ def test_future_unreleased_order_does_not_change_departure_decisions(tmp_path):
 
 
 def test_dynamic_instance_names_preserve_time_window_families():
-    from types import SimpleNamespace
     assert family("h100r101") == "R1"
     assert family("h100r201") == "R2"
     assert family("h400RC2_4_1") == "RC2"
@@ -87,3 +96,19 @@ def test_dynamic_instance_names_preserve_time_window_families():
              for kind in ("c2", "r1", "r2") for n in range(1, 5)]
     selected = stratified_sample(items, 6)
     assert {family(item.name) for item in selected} == {"C2", "R1", "R2"}
+
+
+def test_equal_service_totals_allow_distance_to_break_fitness_tie(monkeypatch):
+    evaluator = DynamicEvaluator(SETTINGS, DispatchConfig(), 0.0)
+    instances = [SimpleNamespace(customer_count=100, index=index) for index in range(4)]
+    delivered = {"slack": (100, 99, 98, 80), "extra_cost": (100, 100, 100, 77)}
+
+    def solution(tree, item, *, phase):
+        return SimpleNamespace(delivered=delivered[tree][item.index],
+                               truck_km=10 if tree == "slack" else 5, drone_km=0, vehicles=1)
+
+    monkeypatch.setattr(evaluator, "solution", solution)
+    first = evaluator.fitness("slack", instances)
+    second = evaluator.fitness("extra_cost", instances)
+    assert first.mean_unserved_fraction == second.mean_unserved_fraction == 0.0575
+    assert second < first

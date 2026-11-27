@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from functools import partial
 
 from dvrpsim import Model, Order, Vehicle
 
@@ -23,6 +24,7 @@ class DispatchConfig:
     drone_cost_ratio: float = 0.25
     drone_enabled: bool = True
     wait_at_depot: bool = True
+    retry_earlier_gaps: bool = False
 
 
 @dataclass(frozen=True)
@@ -43,13 +45,14 @@ class DroneModel(Model):
     def _init_logger(self):
         self.log = _QuietLoggingCallback(self)
 
-    def __init__(self, instance, settings, config, tree, capture_events):
+    def __init__(self, instance, settings, config, tree, capture_events, schedule_plan=None):
         super().__init__()
         self.instance = instance
         self.settings = settings
         self.config = config
         self.priority = compile_tree(tree, DRONE_FEATURES) if tree is not None else None
         self.capture_events = capture_events
+        self.schedule_plan = schedule_plan or partial(schedule, instance, settings)
         self.events = []
         self.decision_seconds = []
         self.pending = set()
@@ -127,29 +130,35 @@ class DroneModel(Model):
         for cid in sorted(self.pending, key=lambda i: (self.instance.customers[i].due_date, i)):
             if self.instance.customers[cid].due_date < now:
                 continue
-            best = None
-            seen_empty = False
-            for vid, (plan, prior) in plans.items():
-                # Empty identical trucks give identical scores. Keep the first,
-                # which also wins the vehicle-ID tie-break in the full search.
-                if not plan.orders:
-                    if seen_empty:
-                        continue
-                    seen_empty = True
-                for index, candidate in enumerate(insertions(
-                    plan, cid, self.config.drone_enabled and self.instance.drone_allowed[cid],
-                    self.config.gaps,
-                )):
-                    result = schedule(self.instance, self.settings, candidate, now)
-                    if result is None:
-                        continue
-                    key = (self.rank(cid, vid, plan, prior, candidate, result, now), vid, index)
-                    if best is None or key < best[0]:
-                        best = key, candidate, result
+            best = self.best_insertion(cid, plans, now, limit=self.config.gaps)
+            if best is None and self.config.retry_earlier_gaps:
+                best = self.best_insertion(cid, plans, now, limit=self.instance.customer_count,
+                                           skip=self.config.gaps)
             if best is not None:
                 key, candidate, result = best
                 plans[key[1]] = candidate, result
         return {vid: plan for vid, (plan, _) in plans.items() if plan.orders}
+
+    def best_insertion(self, cid, plans, now, *, limit, skip=0):
+        best = None
+        seen_empty = False
+        drone_allowed = self.config.drone_enabled and self.instance.drone_allowed[cid]
+        for vid, (plan, prior) in plans.items():
+            # Identical empty vehicles offer the same scores and sort by ID.
+            if len(plan.sorties) <= skip:
+                continue
+            if not plan.orders:
+                if seen_empty:
+                    continue
+                seen_empty = True
+            for index, candidate in enumerate(insertions(plan, cid, drone_allowed, limit, skip=skip)):
+                result = self.schedule_plan(candidate, now)
+                if result is None:
+                    continue
+                key = (self.rank(cid, vid, plan, prior, candidate, result, now), vid, index)
+                if best is None or key < best[0]:
+                    best = key, candidate, result
+        return best
 
     def dispatch(self):
         # Order releases and returns (priority 3) and hold timers (4) precede dispatch.
@@ -180,8 +189,8 @@ class DroneModel(Model):
                 self.deadlines[vid] = due
             if self.config.wait_at_depot:
                 due = max(due, ready_departure(self.instance, self.settings, plan, now))
-            if now >= due or schedule(self.instance, self.settings, plan, due) is None:
-                result = schedule(self.instance, self.settings, plan, now)
+            if now >= due or self.schedule_plan(plan, due) is None:
+                result = self.schedule_plan(plan, now)
                 if result is None:
                     raise RuntimeError("Infeasible departure")
                 self.depart(vid, plan, result)
@@ -254,8 +263,8 @@ class DroneModel(Model):
 
 
 def run_episode(instance: DroneInstance, settings: Settings, config: DispatchConfig,
-                tree: Tree | None, *, capture_events: bool = False) -> Episode:
-    model = DroneModel(instance, settings, config, tree, capture_events)
+                tree: Tree | None, *, capture_events: bool = False, schedule_plan=None) -> Episode:
+    model = DroneModel(instance, settings, config, tree, capture_events, schedule_plan)
     model.env.run()
     if model.committed or len(model.completed | model.pending) != instance.customer_count:
         raise RuntimeError("Episode did not account for all orders")
